@@ -28,7 +28,7 @@ const DEFAULT_HEADERS = {
 
 // Helper to determine the user role from contributors list
 function checkRole(email: string): "Student" | "Contributor" | "Admin" {
-  if (email.toLowerCase() === "admin@srmist.edu.in") {
+  if (email.toLowerCase() === "sv3824@srmist.edu.in") {
     return "Admin";
   }
   try {
@@ -264,25 +264,6 @@ export async function POST(req: NextRequest) {
     }
 
     const userRole = checkRole(email);
-
-    // --- Admin Credentials Quick Override ---
-    if (email === "admin@srmist.edu.in" && password === "admin") {
-      return NextResponse.json({
-        success: true,
-        message: "Admin login successful",
-        user: {
-          name: "Chief Academic Officer",
-          email: "admin@srmist.edu.in",
-          registrationNumber: "ADMIN-001",
-          role: "Admin",
-          avatar: "🛡️",
-          uploadsCount: 24,
-          downloadsCount: 154,
-          badges: ["Founding Administrator"],
-          joinedDate: new Date().toISOString().split("T")[0],
-        },
-      });
-    }
 
     const apiClient = createApiClient();
     let userName: string | null = null;

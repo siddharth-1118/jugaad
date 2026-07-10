@@ -9,22 +9,7 @@ function readContributors() {
   try {
     if (!fs.existsSync(filePath)) {
       // Create with default contributors
-      const defaultContributors = [
-        {
-          id: "c-1",
-          email: "educator@srmist.edu.in",
-          name: "Syllabus Coordinator",
-          addedBy: "System",
-          addedAt: new Date().toISOString()
-        },
-        {
-          id: "c-2",
-          email: "s.jenkins@university.edu",
-          name: "Dr. Sarah Jenkins",
-          addedBy: "System",
-          addedAt: new Date().toISOString()
-        }
-      ];
+      const defaultContributors: any[] = [];
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
       fs.writeFileSync(filePath, JSON.stringify(defaultContributors, null, 2));
       return defaultContributors;
