@@ -4,7 +4,7 @@ import React, { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../context/AppContext";
-import { BRANCH_FILES } from "../page";
+import { BRANCH_FILES } from "../../lib/constants";
 import syllabusData from "../../data/syllabus_subjects.json";
 
 function getSubjectsForBranch(branchId: string, semester: number) {
@@ -231,7 +231,7 @@ export default function UploadPage({
     setTimeout(() => {
       addResource(finalCourseId, {
         title,
-        type: finalType,
+        type: finalType as any,
         format,
         url: `/mock-files/${fileName}`,
         uploadedBy: user?.name || "Unknown User",

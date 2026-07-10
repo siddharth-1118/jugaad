@@ -56,16 +56,16 @@ export default function CourseDetailsPage({
   });
 
   // Group by category type
-  const pyqs = visibleResources.filter((r) => r.type === "pyq");
-  const notes = visibleResources.filter((r) => r.type === "lecture-notes");
-  const cts = visibleResources.filter((r) => r.type === "cts");
-  const assigns = visibleResources.filter((r) => r.type === "assignment");
+  const pyqs = visibleResources.filter((r: any) => r.type === "pyq");
+  const notes = visibleResources.filter((r: any) => r.type === "lecture-notes");
+  const cts = visibleResources.filter((r: any) => r.type === "cts");
+  const assigns = visibleResources.filter((r: any) => r.type === "assignment");
 
   // Get custom categories in use
   const standardTypes = ["pyq", "lecture-notes", "cts", "assignment"];
   const customTypes = Array.from(new Set(visibleResources
-    .filter(r => !standardTypes.includes(r.type))
-    .map(r => r.type)));
+    .filter((r: any) => !standardTypes.includes(r.type))
+    .map((r: any) => r.type)));
 
   const resourceGroups = [
     { title: "Previous Year Questions (PYQs)", type: "pyq", items: pyqs, icon: GraduationCap, color: "text-primary bg-primary/10 border-primary/20" },
@@ -75,7 +75,7 @@ export default function CourseDetailsPage({
     ...customTypes.map(c => ({
       title: c.toUpperCase(),
       type: c,
-      items: visibleResources.filter(r => r.type === c),
+      items: visibleResources.filter((r: any) => r.type === c),
       icon: FileText,
       color: "text-secondary bg-secondary/10 border-secondary/20"
     }))

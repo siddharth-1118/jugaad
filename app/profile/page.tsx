@@ -56,12 +56,12 @@ export default function ProfilePage() {
   const userUploads = useMemo(() => {
     if (!user) return [];
     return courses.flatMap(c => 
-      c.resources.filter(r => r.uploadedBy === user.name)
+      c.resources.filter((r: any) => r.uploadedBy === user.name)
     );
   }, [courses, user]);
 
   const uploadsCount = userUploads.length;
-  const downloadsCount = userUploads.reduce((sum, r) => sum + r.downloadsCount, 0);
+  const downloadsCount = userUploads.reduce((sum: number, r: any) => sum + r.downloadsCount, 0);
 
   const dynamicBadges = useMemo(() => {
     const list = [];

@@ -245,7 +245,6 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
                   key={link.name}
                   href={link.href}
                   onClick={(e) => {
-                    if (link.onClick) link.onClick(e);
                     setMobileMenuOpen(false);
                   }}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium transition-colors ${

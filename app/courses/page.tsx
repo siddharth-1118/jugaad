@@ -3,7 +3,7 @@
 import React, { use, useState, useMemo } from "react";
 import Link from "next/link";
 import { useApp } from "../../context/AppContext";
-import { BRANCH_FILES } from "../page";
+import { BRANCH_FILES } from "../../lib/constants";
 import syllabusData from "../../data/syllabus_subjects.json";
 import { 
   Search, 
@@ -174,8 +174,8 @@ export default function CoursesCatalogPage({
     const standardCategories = ["pyq", "lecture-notes", "cts", "assignment"];
     const resourcesList = selectedSubject.resources || [];
     const inUseCustom = resourcesList
-      .filter(r => r.status === "Approved" && !standardCategories.includes(r.type))
-      .map(r => r.type);
+      .filter((r: any) => r.status === "Approved" && !standardCategories.includes(r.type))
+      .map((r: any) => r.type);
     
     // De-duplicate custom ones
     const uniqueCustom = Array.from(new Set(inUseCustom));
@@ -185,7 +185,7 @@ export default function CoursesCatalogPage({
       { id: "lecture-notes", name: "Lecture Notes & Handouts" },
       { id: "cts", name: "Class Tests & Quizzes (CTS)" },
       { id: "assignment", name: "Assignments & Projects" },
-      ...uniqueCustom.map(c => ({ id: c, name: c.toUpperCase() }))
+      ...uniqueCustom.map((c: any) => ({ id: c, name: String(c).toUpperCase() }))
     ];
   }, [selectedSubject]);
 
@@ -193,9 +193,9 @@ export default function CoursesCatalogPage({
   const filteredResources = useMemo(() => {
     if (!selectedSubject) return [];
     const resourcesList = selectedSubject.resources || [];
-    let list = resourcesList.filter(r => r.status === "Approved");
+    let list = resourcesList.filter((r: any) => r.status === "Approved");
     if (selectedType) {
-      list = list.filter(r => r.type === selectedType);
+      list = list.filter((r: any) => r.type === selectedType);
     }
     return list;
   }, [selectedSubject, selectedType]);
@@ -536,7 +536,7 @@ export default function CoursesCatalogPage({
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-2.5">
-                    {filteredResources.map((item) => (
+                    {filteredResources.map((item: any) => (
                       <Link
                         key={item.id}
                         href={`/resources/${item.id}?courseId=${selectedSubject.id}`}
