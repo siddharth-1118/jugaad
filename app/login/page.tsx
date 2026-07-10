@@ -103,48 +103,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Social login division */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-white/10" />
-            </div>
-            <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider">
-              <span className="bg-[#05070a] px-2 text-on-surface-variant">SRM Intranet Gateway</span>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3 text-center">
-            <button
-              onClick={() => {
-                setEmail("admin@srmist.edu.in");
-                setPassword("admin");
-              }}
-              className="px-3 py-2 text-[11px] font-bold rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-on-surface-variant hover:text-on-surface transition-all"
-            >
-              Fill Admin
-            </button>
-            <button
-              onClick={() => {
-                setEmail("educator@srmist.edu.in");
-                setPassword("any-password");
-              }}
-              className="px-3 py-2 text-[11px] font-bold rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-on-surface-variant hover:text-on-surface transition-all"
-            >
-              Fill Contributor
-            </button>
-          </div>
         </div>
 
-        {/* Demo Credentials Guide */}
-        <div className="glass-card border border-white/10 rounded-xl p-4 text-[11px] text-on-surface-variant leading-relaxed space-y-1.5">
-          <p className="font-bold text-on-surface uppercase tracking-wide">Demo Accounts & Scraper Fallback Guide:</p>
-          <ul className="list-disc pl-4 space-y-1">
-            <li><strong>Admin Role:</strong> Enter <code className="font-mono bg-white/5 border border-white/10 px-1 py-0.5 rounded text-primary">admin@srmist.edu.in</code> and passkey <code className="font-mono bg-white/5 border border-white/10 px-1 py-0.5 rounded text-primary">admin</code>.</li>
-            <li><strong>Contributor Role:</strong> Enter <code className="font-mono bg-white/5 border border-white/10 px-1 py-0.5 rounded text-primary">educator@srmist.edu.in</code> (default registered contributor email).</li>
-            <li><strong>Student Role:</strong> Enter any other email (e.g. <code className="font-mono bg-white/5 border border-white/10 px-1 py-0.5 rounded text-primary">student@srmist.edu.in</code>).</li>
-            <li><strong>Intranet Fallback:</strong> If the SRM intranet is unreachable during testing, the route handler automatically serves a simulated student profile matching your email NetID.</li>
-          </ul>
-        </div>
+
 
       </div>
     </div>

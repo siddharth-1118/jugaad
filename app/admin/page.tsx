@@ -15,12 +15,14 @@ import {
 } from "lucide-react";
 
 export default function AdminPage() {
-  const { user, contributors, addContributor, removeContributor, addNotification } = useApp();
+  const { user, contributors, addContributor, removeContributor, addNotification, refreshContributors } = useApp();
   const router = useRouter();
   
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     if (!user || user.role !== "Admin") {
@@ -34,12 +36,17 @@ export default function AdminPage() {
     if (!email) return;
 
     setIsAdding(true);
+    setSuccessMsg("");
+    setErrorMsg("");
     try {
       await addContributor(email, name);
+      await refreshContributors();
       setEmail("");
       setName("");
+      setSuccessMsg(`${email} has been added as a contributor.`);
+      setTimeout(() => setSuccessMsg(""), 5000);
     } catch (error: any) {
-      addNotification(error.message || "Failed to add contributor", "warning");
+      setErrorMsg(error.message || "Failed to add contributor");
     } finally {
       setIsAdding(false);
     }
@@ -49,8 +56,9 @@ export default function AdminPage() {
     if (confirm(`Are you sure you want to remove ${contributorEmail} as a contributor?`)) {
       try {
         await removeContributor(id);
+        await refreshContributors();
       } catch (error) {
-        addNotification("Failed to remove contributor", "warning");
+        setErrorMsg("Failed to remove contributor");
       }
     }
   };
@@ -119,6 +127,16 @@ export default function AdminPage() {
               </div>
             </div>
             
+            {successMsg && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-950/30 border border-emerald-600/40 text-emerald-400 text-xs font-semibold rounded-lg">
+                ✓ {successMsg}
+              </div>
+            )}
+            {errorMsg && (
+              <div className="flex items-center gap-2 p-3 bg-red-950/30 border border-red-600/40 text-red-400 text-xs font-semibold rounded-lg">
+                ✗ {errorMsg}
+              </div>
+            )}
             <button
               type="submit"
               disabled={isAdding || !email}
