@@ -1,26 +1,177 @@
 @import "tailwindcss";
 
+@theme {
+  --color-accent-primary: var(--accent-primary, #6366f1);
+  --color-accent-hover: var(--accent-hover, #4f46e5);
+  --color-accent-ring: var(--accent-ring, rgba(99, 102, 241, 0.4));
+  
+  --color-surface-container-lowest: #0a0e17;
+  --color-surface-container-low: #181b25;
+  --color-surface-container: #1c1f29;
+  --color-surface-container-high: #262a34;
+  --color-surface-container-highest: #31353f;
+  
+  --color-primary: #c0c1ff;
+  --color-on-primary: #1000a9;
+  --color-primary-container: #8083ff;
+  --color-on-primary-container: #0d0096;
+  
+  --color-secondary: #4edea3;
+  --color-on-secondary: #003824;
+  --color-secondary-container: #00a572;
+  --color-on-secondary-container: #00311f;
+  
+  --color-tertiary: #ffb95f;
+  --color-on-tertiary: #472a00;
+  --color-tertiary-container: #ca8100;
+  --color-on-tertiary-container: #3e2400;
+  
+  --color-background: #0f131c;
+  --color-on-background: #dfe2ef;
+  
+  --color-surface: #0f131c;
+  --color-surface-dim: #0f131c;
+  --color-surface-bright: #353943;
+  --color-on-surface: #dfe2ef;
+  --color-on-surface-variant: #c7c4d7;
+  
+  --color-outline: #908fa0;
+  --color-outline-variant: #464554;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #0f131c;
+  --foreground: #dfe2ef;
+  --card-bg: rgba(17, 24, 39, 0.7);
+  --card-border: rgba(255, 255, 255, 0.08);
+  
+  --accent-primary: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-ring: rgba(99, 102, 241, 0.4);
+  
+  --font-family-override: 'Inter', system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #090d16;
+  color: #dfe2ef;
+  font-family: var(--font-family-override);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* Glassmorphism Styles from Stitch */
+.glass-panel {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(192, 193, 255, 0.2);
+  box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.1);
+}
+
+.card-glow-hover:hover {
+  border-color: rgba(192, 193, 255, 0.4);
+  box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
+}
+
+.glowing-icon {
+  filter: drop-shadow(0 0 4px rgba(192, 193, 255, 0.3));
+}
+
+.neon-emerald-glow {
+  box-shadow: 0 0 10px rgba(78, 222, 163, 0.4);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Offline state indicators */
+.offline-pulse {
+  animation: pulse-orange 2s infinite ease-in-out;
+}
+@keyframes pulse-orange {
+  0%, 100% {
+    opacity: 1;
+    background-color: rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    background-color: rgba(249, 115, 22, 0.02);
+    border-color: rgba(249, 115, 22, 0.1);
+  }
+}
+
+/* Pulse Glow */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.progress-gradient {
+  background: linear-gradient(90deg, #c0c1ff 0%, #4edea3 100%);
+}
+
+/* Unique active glows for selector steps */
+.year-card-active {
+  border-color: rgba(99, 102, 241, 0.8) !important;
+  background: rgba(99, 102, 241, 0.12) !important;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.15), inset 0 0 10px rgba(99, 102, 241, 0.08);
+}
+
+.semester-card-active {
+  border-color: rgba(78, 222, 163, 0.8) !important;
+  background: rgba(78, 222, 163, 0.12) !important;
+  box-shadow: 0 0 15px rgba(78, 222, 163, 0.15), inset 0 0 10px rgba(78, 222, 163, 0.08);
+}
+
+.subject-card-active {
+  border-color: rgba(78, 222, 163, 0.8) !important;
+  background: rgba(78, 222, 163, 0.12) !important;
+  box-shadow: 0 0 15px rgba(78, 222, 163, 0.15), inset 0 0 10px rgba(78, 222, 163, 0.08);
+}
+
+.category-card-active {
+  border-color: rgba(255, 185, 95, 0.8) !important;
+  background: rgba(255, 185, 95, 0.12) !important;
+  box-shadow: 0 0 15px rgba(255, 185, 95, 0.15), inset 0 0 10px rgba(255, 185, 95, 0.08);
+}
+
+/* Base custom themes */
+.glow-border-indigo {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+.glow-border-indigo:hover {
+  border-color: rgba(99, 102, 241, 0.8);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+}
+

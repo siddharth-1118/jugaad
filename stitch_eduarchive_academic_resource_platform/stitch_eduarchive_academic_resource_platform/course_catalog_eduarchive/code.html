@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduArchive | Course Catalog</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#0a0e17",
+                    "secondary-container": "#00a572",
+                    "surface-container-highest": "#31353f",
+                    "on-error": "#690005",
+                    "error-container": "#93000a",
+                    "surface-container-low": "#181b25",
+                    "inverse-primary": "#494bd6",
+                    "primary-container": "#8083ff",
+                    "surface-container": "#1c1f29",
+                    "surface-container-high": "#262a34",
+                    "tertiary": "#ffb95f",
+                    "primary-fixed": "#e1e0ff",
+                    "primary-fixed-dim": "#c0c1ff",
+                    "surface-bright": "#353943",
+                    "on-primary": "#1000a9",
+                    "on-surface-variant": "#c7c4d7",
+                    "on-tertiary-fixed-variant": "#653e00",
+                    "surface-variant": "#31353f",
+                    "on-tertiary-container": "#3e2400",
+                    "primary": "#c0c1ff",
+                    "background": "#0f131c",
+                    "surface-tint": "#c0c1ff",
+                    "on-primary-container": "#0d0096",
+                    "on-secondary-container": "#00311f",
+                    "inverse-on-surface": "#2c303a",
+                    "tertiary-fixed": "#ffddb8",
+                    "on-surface": "#dfe2ef",
+                    "on-tertiary": "#472a00",
+                    "surface-dim": "#0f131c",
+                    "on-secondary-fixed": "#002113",
+                    "on-tertiary-fixed": "#2a1700",
+                    "secondary-fixed": "#6ffbbe",
+                    "on-secondary": "#003824",
+                    "on-primary-fixed": "#07006c",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-background": "#dfe2ef",
+                    "error": "#ffb4ab",
+                    "inverse-surface": "#dfe2ef",
+                    "on-secondary-fixed-variant": "#005236",
+                    "tertiary-fixed-dim": "#ffb95f",
+                    "outline": "#908fa0",
+                    "secondary": "#4edea3",
+                    "tertiary-container": "#ca8100",
+                    "outline-variant": "#464554",
+                    "on-primary-fixed-variant": "#2f2ebe",
+                    "surface": "#0f131c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "80px",
+                    "gutter": "24px",
+                    "xs": "4px",
+                    "container-max": "1280px",
+                    "base": "8px",
+                    "md": "24px",
+                    "sm": "12px",
+                    "lg": "48px"
+            },
+            "fontFamily": {
+                    "label-bold": ["Inter"],
+                    "label-md": ["Inter"],
+                    "display-lg": ["Outfit"],
+                    "body-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Outfit"],
+                    "body-lg": ["Inter"],
+                    "display-lg-mobile": ["Outfit"],
+                    "headline-sm": ["Outfit"]
+            },
+            "fontSize": {
+                    "label-bold": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "display-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #090d16;
+            color: #dfe2ef;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .card-glow-hover:hover {
+            border-color: rgba(192, 193, 255, 0.4);
+            box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.1);
+            transform: translateY(-2px);
+        }
+        .neon-emerald-glow {
+            box-shadow: 0 0 10px rgba(78, 222, 163, 0.4);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-xl h-16 bg-opacity-70 bg-surface-container-low backdrop-blur-xl border-b border-white/10 shadow-sm">
+<div class="flex items-center gap-lg">
+<span class="font-display-lg text-display-lg text-primary drop-shadow-[0_0_8px_rgba(192,193,255,0.3)]">EduArchive</span>
+<div class="hidden md:flex gap-md items-center">
+<a class="text-primary font-label-bold border-b-2 border-primary pb-1 transition-colors duration-200" href="#">Courses</a>
+<a class="text-on-surface-variant font-label-md hover:text-on-surface transition-colors duration-200" href="#">Forums</a>
+<a class="text-on-surface-variant font-label-md hover:text-on-surface transition-colors duration-200" href="#">Moderation</a>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90" title="Account">account_circle</button>
+</div>
+</nav>
+<div class="flex h-screen pt-16">
+<!-- Sidebar Filter Panel -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-72 p-md flex flex-col gap-base bg-opacity-70 bg-surface-container-lowest backdrop-blur-xl border-r border-white/10 shadow-xl overflow-y-auto custom-scrollbar">
+<div class="mb-sm">
+<h2 class="font-headline-sm text-headline-sm text-primary mb-xs">Resource Filters</h2>
+<p class="font-label-md text-label-md text-on-surface-variant">Refine your search</p>
+</div>
+<div class="flex flex-col gap-md mt-sm">
+<!-- Academic Year Filter -->
+<div>
+<label class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-widest mb-base block">Academic Year</label>
+<div class="flex flex-col gap-xs">
+<button class="flex items-center gap-3 bg-primary/10 text-primary rounded-lg px-4 py-3 shadow-[inset_0_0_12px_rgba(99,102,241,0.1)] transition-all duration-300">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+<span class="font-label-md text-label-md">2024 Academic Year</span>
+</button>
+<button class="flex items-center gap-3 text-on-surface-variant hover:bg-white/5 rounded-lg px-4 py-3 transition-all duration-300">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md text-label-md">2023 Academic Year</span>
+</button>
+</div>
+</div>
+<!-- Progression Filter -->
+<div>
+<label class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-widest mb-base block">Level</label>
+<div class="grid grid-cols-2 gap-2">
+<button class="glass-panel text-on-surface-variant py-2 rounded-lg font-label-md hover:border-primary/20 transition-all">1st Year</button>
+<button class="glass-panel text-on-surface-variant py-2 rounded-lg font-label-md hover:border-primary/20 transition-all">2nd Year</button>
+<button class="glass-panel text-on-surface-variant py-2 rounded-lg font-label-md hover:border-primary/20 transition-all">3rd Year</button>
+<button class="glass-panel text-on-surface-variant py-2 rounded-lg font-label-md hover:border-primary/20 transition-all">4th Year</button>
+</div>
+</div>
+<!-- Semester Filter -->
+<div>
+<label class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-widest mb-base block">Semester</label>
+<div class="flex flex-col gap-xs">
+<button class="flex items-center gap-3 text-on-surface-variant hover:bg-white/5 rounded-lg px-4 py-3 transition-all duration-300">
+<span class="material-symbols-outlined">filter_1</span>
+<span class="font-label-md text-label-md">Semester 1</span>
+</button>
+<button class="flex items-center gap-3 text-on-surface-variant hover:bg-white/5 rounded-lg px-4 py-3 transition-all duration-300">
+<span class="material-symbols-outlined">filter_2</span>
+<span class="font-label-md text-label-md">Semester 2</span>
+</button>
+<button class="flex items-center gap-3 text-on-surface-variant hover:bg-white/5 rounded-lg px-4 py-3 transition-all duration-300">
+<span class="material-symbols-outlined">wb_sunny</span>
+<span class="font-label-md text-label-md">Summer Term</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-md flex flex-col gap-base">
+<button class="bg-primary text-on-primary py-3 rounded-lg font-label-bold uppercase tracking-wider shadow-lg hover:brightness-110 active:scale-95 transition-all">
+                    Apply Filters
+                </button>
+<div class="flex gap-4 px-2 py-4 border-t border-white/5">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface" title="Settings">settings</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-on-surface" title="Help">help</button>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-72 flex-1 overflow-y-auto custom-scrollbar p-xl bg-background relative">
+<!-- Background Decorative Shader (Simulated with Gradient/Blur) -->
+<div class="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+<div class="absolute -top-[20%] -left-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px]"></div>
+<div class="absolute top-[40%] -right-[10%] w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[100px]"></div>
+</div>
+<div class="relative z-10 max-w-container-max mx-auto">
+<!-- Search & Header Section -->
+<div class="flex flex-col gap-md mb-lg">
+<div class="flex flex-col">
+<h1 class="font-display-lg text-display-lg text-on-surface">Course Library</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Access curated archives, shared lecture notes, and research materials for all academic modules.</p>
+</div>
+<!-- Glassmorphic Search Bar -->
+<div class="relative max-w-xl group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-[#05070a] border border-white/10 rounded-full py-4 pl-12 pr-6 text-on-surface focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 backdrop-blur-md transition-all font-body-md" placeholder="Search by course code, title, or professor..." type="text"/>
+</div>
+</div>
+<!-- Course Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-gutter">
+<!-- Course Card 1: Active Library -->
+<div class="glass-panel rounded-xl p-6 flex flex-col gap-4 card-glow-hover transition-all duration-300 group cursor-pointer">
+<div class="flex justify-between items-start">
+<span class="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded font-label-bold text-label-bold">CS101</span>
+<div class="flex items-center gap-2 bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full font-label-md text-label-md neon-emerald-glow">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                                Active Library
+                            </div>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary transition-colors">Introduction to Computational Thinking</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">Fundamental principles of algorithm design, data structures, and computational problem-solving using Python.</p>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container bg-surface-container-high" data-alt="A professional studio portrait of a university professor with a focused expression, warm lighting, against a dark academic background. High-quality digital photography." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuANd10ln-cuKZ7gmDG8K0vXKlZZJpmjGe1EkGr8kiA56svQG1kdsQwgyFQbP8mnGHge0nUVTw1SHwsap2Jj4oGqFZqI_oWX1tAQzeqB_8887Iwm6WZj2gVXcqBrV3e66otdE2ekfAQZE_gJB7-3rdxjTn4-b8hkA-tKJrHqLnnWy5j6rQbg2T6oz3vBPKRmXoSf1-HWFb4tf6koC7U9itTXDuQmGaxyxJEPL4Io1RFHZhAwldQKpW_zHPeDkunYNsQvz53uHUM2zyc')"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container bg-surface-container-high flex items-center justify-center text-[10px] font-bold text-primary-fixed-dim bg-primary/20">+12</div>
+</div>
+<span class="text-on-surface-variant font-label-md">1.2 GB Resources</span>
+</div>
+</div>
+<!-- Course Card 2: Empty Directory -->
+<div class="glass-panel rounded-xl p-6 flex flex-col gap-4 card-glow-hover transition-all duration-300 group cursor-pointer">
+<div class="flex justify-between items-start">
+<span class="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded font-label-bold text-label-bold">MAT240</span>
+<div class="flex items-center gap-2 border border-white/20 border-dashed text-on-surface-variant px-3 py-1 rounded-full font-label-md text-label-md">
+                                Empty Directory
+                            </div>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary transition-colors">Linear Algebra II</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">Vector spaces, inner product spaces, eigenvalues, and canonical forms. Advanced theoretical framework for multi-dimensional mapping.</p>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+<button class="text-primary font-label-bold flex items-center gap-1 hover:gap-2 transition-all">
+                                Request Archive
+                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<span class="text-on-surface-variant font-label-md">0 Assets</span>
+</div>
+</div>
+<!-- Course Card 3: Active Library -->
+<div class="glass-panel rounded-xl p-6 flex flex-col gap-4 card-glow-hover transition-all duration-300 group cursor-pointer">
+<div class="flex justify-between items-start">
+<span class="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded font-label-bold text-label-bold">PHY302</span>
+<div class="flex items-center gap-2 bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full font-label-md text-label-md neon-emerald-glow">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                                Active Library
+                            </div>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary transition-colors">Quantum Mechanics Fundamentals</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">Schrödinger equation, uncertainty principles, and atomic transitions. Deep dive into subatomic phenomena and mathematical modeling.</p>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface-container bg-surface-container-high" data-alt="A portrait of a senior researcher in a laboratory setting with subtle blue neon accents and high-tech equipment blurred in the background. Ultra-modern intellectual style." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBxAnlpszMZ7rR8M4FbzRNE6ZzXG-4IEvKhYPH0dFfOv8hynsR8McfMVp4XEr0YhARogS2dUoVFYmoOZFtH7VkxdEEzwZYLkAEKlMGkx_cAm_euQ7heRxmQF47zL_TXZ0OXP0zBboB6xtyAUzqqMVwcvaJy1dY-bS2NkTg4eQ6RYXY1jyIOjOLDnlBt3SSoI9whul5kVk2ZwTylBIrQI18KxESLUPrLMxKDLD1LV5mWmWaHJpc1jfuN7tvea_kkK2X-NpM7yyIbj7c')"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container bg-surface-container-high" data-alt="A diverse group of researchers collaborating in a modern glass-walled university office, lit by evening soft-box lights. Minimalist professional aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAMxeSzaYhaXA0JrCxJ2Z8cwUEHPWheN9GeFbe12YGFlqLgpy_D-FEZIT2XhiuYIVLalbNlfESSgsXJu1VGo2HSGq_wdhbCW_RhIxxinbKqio3DKhRmRuPHDXONOxxZQqLONX975pofqSOsCfeC3spNvUOSYErqIAJxSIo7ktK29tZ78uBWjNIhKA2C2uDlwfxMkZQjun0fyLuuXy5yHcMIlRPoDEWN7dA_5Dam-F1j3aiwO4J7iM_4D7EeM-FCFraWa3NmKi0j--o')"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container bg-surface-container-high flex items-center justify-center text-[10px] font-bold text-primary-fixed-dim bg-primary/20">+4</div>
+</div>
+<span class="text-on-surface-variant font-label-md">450 MB Resources</span>
+</div>
+</div>
+<!-- Course Card 4: Active Library -->
+<div class="glass-panel rounded-xl p-6 flex flex-col gap-4 card-glow-hover transition-all duration-300 group cursor-pointer">
+<div class="flex justify-between items-start">
+<span class="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded font-label-bold text-label-bold">DS410</span>
+<div class="flex items-center gap-2 bg-secondary/10 text-secondary border border-secondary/20 px-3 py-1 rounded-full font-label-md text-label-md neon-emerald-glow">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                                Active Library
+                            </div>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface group-hover:text-primary transition-colors">Advanced Neural Networks</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">Exploration of transformers, GANs, and reinforcement learning architectures for scalable AI deployments.</p>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-tertiary font-label-bold">4.9/5.0</span>
+</div>
+<span class="text-on-surface-variant font-label-md">2.8 GB Resources</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Micro-interaction Script -->
+<script>
+        document.querySelectorAll('.glass-panel').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body></html>

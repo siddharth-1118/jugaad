@@ -1,0 +1,16 @@
+[
+  {
+    "id": "c-1",
+    "email": "educator@srmist.edu.in",
+    "name": "Syllabus Coordinator",
+    "addedBy": "System",
+    "addedAt": "2026-07-04T08:47:16.295Z"
+  },
+  {
+    "id": "c-2",
+    "email": "s.jenkins@university.edu",
+    "name": "Dr. Sarah Jenkins",
+    "addedBy": "System",
+    "addedAt": "2026-07-04T08:47:16.295Z"
+  }
+]
