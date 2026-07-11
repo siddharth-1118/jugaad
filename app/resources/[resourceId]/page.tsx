@@ -9,7 +9,6 @@ import {
   Download,
   Star,
   History,
-  Users,
   Play,
   Volume2,
   Maximize2,
@@ -17,7 +16,6 @@ import {
   ZoomOut,
   FileSpreadsheet,
   FileText,
-  MousePointer2,
   CheckCircle,
   MessageSquare,
   Trash2
@@ -42,7 +40,6 @@ export default function ResourceDetailsPage({
     incrementDownloads,
     rollbackResource,
     deleteResource,
-    mockCursors,
     addNotification
   } = useApp();
 
@@ -213,15 +210,14 @@ export default function ResourceDetailsPage({
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-bg-card border border-border-card rounded-2xl overflow-hidden shadow-xs flex flex-col">
             
-            {/* Viewer Controls */}
+            {/* Viewer Toolbar */}
             <div className="bg-zinc-50 dark:bg-zinc-900 px-4 py-3 border-b border-border-card flex items-center justify-between">
-              <span className="text-xs font-bold text-zinc-500 flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-emerald-500 animate-pulse" />
-                Simulated Collaborative Workspace
+              <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                {resource.format.toUpperCase()} Viewer — {resource.title}
               </span>
               
-              {/* Document specific headers */}
-              {resource.format === "pdf" && (
+              {/* PDF Zoom controls */}
+              {resource.format === "pdf" && resource.url.startsWith("data:") && (
                 <div className="flex items-center gap-1.5">
                   <button 
                     onClick={() => setZoom(Math.max(50, zoom - 10))}
@@ -242,27 +238,8 @@ export default function ResourceDetailsPage({
               )}
             </div>
 
-            {/* Viewer Area containing mock cursor overlay */}
+            {/* Viewer Area */}
             <div className="relative min-h-[480px] bg-zinc-100 dark:bg-zinc-950 p-6 overflow-hidden flex items-center justify-center">
-              
-              {/* Collaborative active cursor mock indicators */}
-              <div className="absolute inset-0 z-10 pointer-events-none">
-                {Object.entries(mockCursors).map(([id, cursor]) => (
-                  <div
-                    key={id}
-                    className="absolute flex items-center gap-1 transition-all duration-700 ease-out"
-                    style={{ left: `${cursor.x}px`, top: `${cursor.y}px` }}
-                  >
-                    <MousePointer2 className="h-5.5 w-5.5 rotate-270 drop-shadow-md text-white fill-current" style={{ color: cursor.color }} />
-                    <span 
-                      className="px-2 py-0.5 rounded text-[9px] font-bold text-white shadow-xs" 
-                      style={{ backgroundColor: cursor.color }}
-                    >
-                      {cursor.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
 
               {/* Render player matches format */}
               <div className="w-full h-full flex items-center justify-center z-0">

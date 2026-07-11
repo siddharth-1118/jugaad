@@ -62,6 +62,7 @@ export default function UploadPage({
   const [selectedSemester, setSelectedSemester] = useState<number>(urlSem);
   const [selectedBranchId, setSelectedBranchId] = useState<string>("cse");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(urlCourseId || "");
+  const [extraBranchIds, setExtraBranchIds] = useState<string[]>([]); // extra branches to share the same upload
 
   // New Course Custom Fields
   const [newCourseCode, setNewCourseCode] = useState("");
@@ -232,16 +233,36 @@ export default function UploadPage({
     }
 
     const triggerUpload = (fileUrl: string) => {
-      setTimeout(() => {
-        addResource(finalCourseId, {
-          title,
-          type: finalType as any,
-          format,
-          url: fileUrl,
-          uploadedBy: user?.name || "Unknown User",
-          uploadedAt: new Date().toISOString()
-        }, newCourseDetails);
+      // Collect all branches: primary + any extra ones
+      const allBranchIds = [selectedBranchId, ...extraBranchIds.filter(b => b !== selectedBranchId)];
 
+      setTimeout(async () => {
+        for (const branchId of allBranchIds) {
+          const branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
+          // Find same subject code in that branch's syllabus
+          const branchSubjects = getSubjectsForBranch(branchId, selectedSemester);
+          const matchedSubject = branchSubjects.find(
+            (s: any) => s.id === selectedSubjectId || s.code === availableSubjects.find(a => a.id === selectedSubjectId)?.code
+          );
+          const branchCourseId = branchId === selectedBranchId ? finalCourseId : (matchedSubject?.id || `${branchId}-${selectedSemester}-${selectedSubjectId}`);
+          const branchCourseDetails = branchId === selectedBranchId
+            ? newCourseDetails
+            : {
+                code: matchedSubject?.code || finalCourseId.toUpperCase(),
+                title: matchedSubject?.title || title,
+                year: selectedYear,
+                semester: selectedSemester,
+                category: branchName
+              };
+          await addResource(branchCourseId, {
+            title,
+            type: finalType as any,
+            format,
+            url: fileUrl,
+            uploadedBy: user?.name || "Unknown User",
+            uploadedAt: new Date().toISOString()
+          }, branchCourseDetails);
+        }
         setSubmitting(false);
         router.push(`/courses`);
       }, 1000);
@@ -508,12 +529,12 @@ export default function UploadPage({
 
                 <div className="space-y-1.5">
                   <label htmlFor="selectBranch" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    Branch / Specialization
+                    Primary Branch / Specialization
                   </label>
                   <select
                     id="selectBranch"
                     value={selectedBranchId}
-                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                    onChange={(e) => { setSelectedBranchId(e.target.value); setExtraBranchIds([]); }}
                     className="block w-full rounded-lg border-none bg-[#05070a] p-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden cursor-pointer"
                   >
                     {BRANCH_FILES.map((branch) => (
@@ -522,6 +543,43 @@ export default function UploadPage({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Multi-branch selector */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                    Also Visible In (Multi-branch)
+                  </label>
+                  <div className="bg-[#05070a] rounded-lg p-2 space-y-1 max-h-36 overflow-y-auto border border-white/5">
+                    {BRANCH_FILES.filter(b => b.id !== selectedBranchId).map((branch) => {
+                      const checked = extraBranchIds.includes(branch.id);
+                      return (
+                        <label
+                          key={branch.id}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                            checked ? "bg-indigo-500/10 text-indigo-300" : "hover:bg-white/5 text-zinc-400"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              setExtraBranchIds(prev =>
+                                checked ? prev.filter(id => id !== branch.id) : [...prev, branch.id]
+                              );
+                            }}
+                            className="accent-indigo-500 w-3 h-3"
+                          />
+                          <span className="text-[11px] font-medium">{branch.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {extraBranchIds.length > 0 && (
+                    <p className="text-[10px] text-indigo-400 font-semibold">
+                      ✓ Will be uploaded to {extraBranchIds.length + 1} branches
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
