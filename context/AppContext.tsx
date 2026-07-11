@@ -148,6 +148,7 @@ interface AppContextType {
   ) => void;
   approveResource: (courseId: string, resourceId: string, feedback: string) => void;
   rejectResource: (courseId: string, resourceId: string, feedback: string) => void;
+  deleteResource: (courseId: string, resourceId: string) => Promise<void>;
   addReview: (courseId: string, resourceId: string, rating: number, comment: string) => void;
   incrementDownloads: (courseId: string, resourceId: string) => void;
   rollbackResource: (courseId: string, resourceId: string, versionNumber: number) => void;
@@ -928,6 +929,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteResource = async (courseId: string, resourceId: string) => {
+    let deletedTitle = "";
+    const newCourses = courses.map(course => {
+      if (course.id === courseId) {
+        return {
+          ...course,
+          resources: course.resources.filter(res => {
+            if (res.id === resourceId) {
+              deletedTitle = res.title;
+              return false;
+            }
+            return true;
+          })
+        };
+      }
+      return course;
+    });
+    saveCourses(newCourses);
+
+    // Also remove from Supabase
+    try {
+      const { data: dbItems } = await supabase
+        .from("items")
+        .select("id, photo_url")
+        .eq("type", "FOUND")
+        .eq("location", "material");
+
+      const targetItem = dbItems?.find((item: any) => {
+        try {
+          const meta = JSON.parse(item.photo_url);
+          return meta.id === resourceId;
+        } catch {
+          return false;
+        }
+      });
+
+      if (targetItem) {
+        await supabase.from("items").delete().eq("id", targetItem.id);
+      }
+    } catch (e: any) {
+      console.error("Supabase delete error:", e.message);
+    }
+
+    addNotification(`Material '${deletedTitle}' has been deleted.`, "success");
+  };
+
   const approveResource = async (courseId: string, resourceId: string, feedback: string) => {
     let approvedTitle = "";
     let targetRes: Resource | null = null;
@@ -1255,6 +1302,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addResource,
         approveResource,
         rejectResource,
+        deleteResource,
         addReview,
         incrementDownloads,
         rollbackResource,

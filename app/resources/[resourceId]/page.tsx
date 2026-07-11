@@ -2,6 +2,7 @@
 
 import React, { use, useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useApp } from "../../../context/AppContext";
 import {
   ArrowLeft,
@@ -18,7 +19,8 @@ import {
   FileText,
   MousePointer2,
   CheckCircle,
-  MessageSquare
+  MessageSquare,
+  Trash2
 } from "lucide-react";
 
 export default function ResourceDetailsPage({
@@ -31,6 +33,7 @@ export default function ResourceDetailsPage({
   const { resourceId } = use(params);
   const resolvedSearchParams = use(searchParams);
   const courseIdParam = typeof resolvedSearchParams.courseId === "string" ? resolvedSearchParams.courseId : "";
+  const router = useRouter();
 
   const {
     courses,
@@ -38,6 +41,7 @@ export default function ResourceDetailsPage({
     addReview,
     incrementDownloads,
     rollbackResource,
+    deleteResource,
     mockCursors,
     addNotification
   } = useApp();
@@ -58,6 +62,10 @@ export default function ResourceDetailsPage({
 
   // Simulated Video state
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Delete state
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!course || !resource) {
     return (
@@ -96,7 +104,17 @@ export default function ResourceDetailsPage({
     setRating(5);
   };
 
-  // Calculate average rating
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setIsDeleting(true);
+    await deleteResource(course.id, resource.id);
+    router.push("/courses");
+  };
+
   const avgRating =
     resource.ratings.length > 0
       ? (resource.ratings.reduce((sum, r) => sum + r.rating, 0) / resource.ratings.length).toFixed(1)
@@ -115,13 +133,31 @@ export default function ResourceDetailsPage({
         </Link>
 
         {/* Action Controls */}
-        <button
-          onClick={handleDownload}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm accent-btn-primary shadow-xs"
-        >
-          <Download className="h-4 w-4" />
-          Download resource file ({resource.format.toUpperCase()})
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleDownload}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm accent-btn-primary shadow-xs"
+          >
+            <Download className="h-4 w-4" />
+            Download resource file ({resource.format.toUpperCase()})
+          </button>
+
+          {/* Delete button — Admin only */}
+          {user?.role === "Admin" && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-xs ${
+                confirmDelete
+                  ? "bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                  : "bg-zinc-800 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/60"
+              }`}
+            >
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? "Deleting..." : confirmDelete ? "Click again to confirm delete" : "Delete Material"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Resource Header info block */}
