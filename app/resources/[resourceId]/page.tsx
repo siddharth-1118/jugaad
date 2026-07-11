@@ -80,12 +80,11 @@ export default function ResourceDetailsPage({
     setHasDownloaded(true);
     addNotification(`Downloaded resource: ${resource.title}`, "success");
 
-    // Simulate browser download file triggering
     const link = document.createElement("a");
-    link.href = "#";
+    link.href = resource.url;
     link.setAttribute("download", `${resource.title}.${resource.format}`);
     document.body.appendChild(link);
-    // clean link
+    link.click();
     document.body.removeChild(link);
   };
 
@@ -232,91 +231,145 @@ export default function ResourceDetailsPage({
               {/* Render player matches format */}
               <div className="w-full h-full flex items-center justify-center z-0">
                 {resource.format === "pdf" && (
-                  <div 
-                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 max-w-2xl w-full shadow-md text-zinc-800 dark:text-zinc-200 space-y-4"
-                    style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center", transition: "transform 0.2s" }}
-                  >
-                    <div className="border-b border-zinc-100 dark:border-zinc-800 pb-3 flex justify-between items-center text-[10px] text-zinc-400 font-bold uppercase">
-                      <span>Document Page 1 of 3</span>
-                      <span>Syllabus: {course.code}</span>
+                  resource.url.startsWith("data:") ? (
+                    <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-lg border border-border-card">
+                      <object
+                        data={resource.url}
+                        type="application/pdf"
+                        className="w-full h-[650px] border-none rounded-lg"
+                      >
+                        <iframe
+                          src={resource.url}
+                          className="w-full h-[650px] border-none rounded-lg"
+                          title={resource.title}
+                        />
+                      </object>
                     </div>
-                    <h3 className="text-lg font-bold border-l-3 border-accent-primary pl-2 text-zinc-900 dark:text-zinc-50">
-                      {resource.title}
-                    </h3>
-                    <p className="text-xs leading-5">
-                      This is a simulated PDF file preview compiled for {course.title}. In a production environment, this workspace connects to an S3 bucket or Supabase Storage and renders vector-tiles using PDF.js.
-                    </p>
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Recommended Prep Instructions:</p>
-                      <ul className="text-xs list-disc pl-4 space-y-1">
-                        <li>Practice recursion equations by mapping tree traces.</li>
-                        <li>Reference past solutions from Prof. Alan Turing.</li>
-                        <li>Submit code reviews to course forums for contributor feedback.</li>
-                      </ul>
+                  ) : (
+                    <div 
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 max-w-2xl w-full shadow-md text-zinc-800 dark:text-zinc-200 space-y-4"
+                      style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center center", transition: "transform 0.2s" }}
+                    >
+                      <div className="border-b border-zinc-100 dark:border-zinc-800 pb-3 flex justify-between items-center text-[10px] text-zinc-400 font-bold uppercase">
+                        <span>Document Page 1 of 3</span>
+                        <span>Syllabus: {course.code}</span>
+                      </div>
+                      <h3 className="text-lg font-bold border-l-3 border-accent-primary pl-2 text-zinc-900 dark:text-zinc-50">
+                        {resource.title}
+                      </h3>
+                      <p className="text-xs leading-5">
+                        This is a simulated PDF file preview compiled for {course.title}. In a production environment, this workspace connects to an S3 bucket or Supabase Storage and renders vector-tiles using PDF.js.
+                      </p>
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Recommended Prep Instructions:</p>
+                        <ul className="text-xs list-disc pl-4 space-y-1">
+                          <li>Practice recursion equations by mapping tree traces.</li>
+                          <li>Reference past solutions from Prof. Alan Turing.</li>
+                          <li>Submit code reviews to course forums for contributor feedback.</li>
+                        </ul>
+                      </div>
+                      <p className="text-xs leading-5">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                      </p>
                     </div>
-                    <p className="text-xs leading-5">
-                      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                    </p>
-                  </div>
+                  )
                 )}
 
                 {resource.format === "image" && (
-                  <div className="max-w-md w-full bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-md text-center">
-                    <div className="h-64 bg-zinc-50 dark:bg-zinc-800 border border-dashed border-border-card rounded-xl flex items-center justify-center text-zinc-400 mb-4">
-                      <FileSpreadsheet className="h-16 w-16 text-accent-primary" />
+                  resource.url.startsWith("data:") ? (
+                    <div className="w-full max-h-[500px] overflow-auto flex items-center justify-center bg-zinc-950 rounded-2xl p-4 border border-border-card">
+                      <img
+                        src={resource.url}
+                        alt={resource.title}
+                        className="max-w-full max-h-[450px] object-contain rounded-lg shadow-lg"
+                      />
                     </div>
-                    <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{resource.title}</h4>
-                    <p className="text-xs text-zinc-500 mt-1">Simulated JPG Scan Resource Sheet</p>
-                  </div>
+                  ) : (
+                    <div className="max-w-md w-full bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-md text-center">
+                      <div className="h-64 bg-zinc-50 dark:bg-zinc-800 border border-dashed border-border-card rounded-xl flex items-center justify-center text-zinc-400 mb-4">
+                        <FileSpreadsheet className="h-16 w-16 text-accent-primary" />
+                      </div>
+                      <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{resource.title}</h4>
+                      <p className="text-xs text-zinc-500 mt-1">Simulated JPG Scan Resource Sheet</p>
+                    </div>
+                  )
                 )}
 
                 {resource.format === "video" && (
-                  <div className="max-w-xl w-full bg-zinc-900 border border-zinc-850 rounded-2xl shadow-xl overflow-hidden flex flex-col justify-between aspect-video">
-                    {/* Mock video canvas screen */}
-                    <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 p-6 relative">
-                      {isPlaying ? (
-                        <div className="text-center space-y-2">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto" />
-                          <p className="text-xs text-zinc-300">Streaming lecture guide video (01:24 / 45:10)...</p>
-                        </div>
-                      ) : (
-                        <button 
-                          onClick={() => setIsPlaying(true)}
-                          className="h-16 w-16 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 flex items-center justify-center transition-all scale-102 hover:scale-105"
-                        >
-                          <Play className="h-7 w-7 fill-white translate-x-0.5" />
-                        </button>
-                      )}
+                  resource.url.startsWith("data:") ? (
+                    <div className="max-w-xl w-full bg-[#05070a] border border-white/5 rounded-2xl shadow-xl overflow-hidden p-2">
+                      <video
+                        src={resource.url}
+                        controls
+                        className="w-full max-h-[450px] rounded-lg"
+                      />
                     </div>
-                    
-                    {/* Media Bar Controls */}
-                    <div className="bg-black/90 p-3 flex items-center justify-between text-white text-xs border-t border-zinc-800">
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-accent-primary">
-                          {isPlaying ? <span className="font-bold">Pause</span> : <Play className="h-4 w-4 fill-white" />}
-                        </button>
-                        <span>01:24 / 45:10</span>
+                  ) : (
+                    <div className="max-w-xl w-full bg-zinc-900 border border-zinc-850 rounded-2xl shadow-xl overflow-hidden flex flex-col justify-between aspect-video">
+                      {/* Mock video canvas screen */}
+                      <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 p-6 relative">
+                        {isPlaying ? (
+                          <div className="text-center space-y-2">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto" />
+                            <p className="text-xs text-zinc-300">Streaming lecture guide video (01:24 / 45:10)...</p>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setIsPlaying(true)}
+                            className="h-16 w-16 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 flex items-center justify-center transition-all scale-102 hover:scale-105"
+                          >
+                            <Play className="h-7 w-7 fill-white translate-x-0.5" />
+                          </button>
+                        )}
                       </div>
                       
-                      <div className="flex items-center gap-3">
-                        <Volume2 className="h-4 w-4" />
-                        <Maximize2 className="h-4 w-4" />
+                      {/* Media Bar Controls */}
+                      <div className="bg-black/90 p-3 flex items-center justify-between text-white text-xs border-t border-zinc-800">
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-accent-primary">
+                            {isPlaying ? <span className="font-bold">Pause</span> : <Play className="h-4 w-4 fill-white" />}
+                          </button>
+                          <span>01:24 / 45:10</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          <Volume2 className="h-4 w-4" />
+                          <Maximize2 className="h-4 w-4" />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )
                 )}
 
                 {resource.format === "doc" && (
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 max-w-xl w-full shadow-md text-zinc-800 dark:text-zinc-200 space-y-4">
-                    <div className="flex items-center gap-2 text-xs text-blue-500 font-semibold uppercase">
-                      <FileText className="h-4.5 w-4.5" />
-                      <span>Microsoft Word Mock Doc</span>
+                  resource.url.startsWith("data:") ? (
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 max-w-xl w-full shadow-md text-zinc-800 dark:text-zinc-200 space-y-4 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <FileText className="h-16 w-16 text-blue-500" />
+                        <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">{resource.title}</h3>
+                        <p className="text-xs text-zinc-500 font-semibold">Microsoft Word Document (.docx)</p>
+                        <a
+                          href={resource.url}
+                          download={`${resource.title}.docx`}
+                          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download Word Document
+                        </a>
+                      </div>
                     </div>
-                    <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">{resource.title}</h3>
-                    <p className="text-xs leading-5">
-                      This is a docx assignment instructions sheet template. You can download this document using the action download button above to review full course directions.
-                    </p>
-                  </div>
+                  ) : (
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 max-w-xl w-full shadow-md text-zinc-800 dark:text-zinc-200 space-y-4">
+                      <div className="flex items-center gap-2 text-xs text-blue-500 font-semibold uppercase">
+                        <FileText className="h-4.5 w-4.5" />
+                        <span>Microsoft Word Mock Doc</span>
+                      </div>
+                      <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">{resource.title}</h3>
+                      <p className="text-xs leading-5">
+                        This is a docx assignment instructions sheet template. You can download this document using the action download button above to review full course directions.
+                      </p>
+                    </div>
+                  )
                 )}
               </div>
 

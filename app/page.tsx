@@ -140,6 +140,11 @@ export default function Home() {
     if (!selectedSubject) return [];
     
     const countForType = (type: string) => {
+      if (type === "custom") {
+        return selectedSubject.resources.filter(
+          (r) => !["pyq", "lecture-notes", "cts", "assignment", "lab"].includes(r.type) && r.status === "Approved"
+        ).length;
+      }
       return selectedSubject.resources.filter((r) => r.type === type && r.status === "Approved").length;
     };
 
@@ -148,13 +153,20 @@ export default function Home() {
       { id: "lecture-notes", name: "Notes", icon: FileText, count: countForType("lecture-notes"), color: "text-indigo-400" },
       { id: "cts", name: "Tests", icon: FileCheckIcon, count: countForType("cts"), color: "text-emerald-400" },
       { id: "assignment", name: "Assignments", icon: FileCode, count: countForType("assignment"), color: "text-purple-400" },
-      { id: "lab", name: "Lab Manuals", icon: FlaskIcon, count: countForType("lab"), color: "text-sky-400" }
+      { id: "lab", name: "Lab Manuals", icon: FlaskIcon, count: countForType("lab"), color: "text-sky-400" },
+      { id: "custom", name: "Custom Categories", icon: Layers, count: countForType("custom"), color: "text-rose-400" }
     ];
   }, [selectedSubject]);
 
   // Filtered resources for selected subject
   const filteredResources = useMemo(() => {
     if (!selectedSubject) return [];
+    
+    if (selectedCategory === "custom") {
+      return selectedSubject.resources.filter(
+        (r) => !["pyq", "lecture-notes", "cts", "assignment", "lab"].includes(r.type) && r.status === "Approved"
+      );
+    }
     
     return selectedSubject.resources.filter(
       (r) => r.type === selectedCategory && r.status === "Approved"

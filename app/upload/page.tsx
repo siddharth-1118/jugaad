@@ -53,6 +53,7 @@ export default function UploadPage({
   const [format, setFormat] = useState<"pdf" | "image" | "video" | "doc">("pdf");
   const [fileAttached, setFileAttached] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [fileObject, setFileObject] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [redirected, setRedirected] = useState(false);
 
@@ -168,6 +169,7 @@ export default function UploadPage({
     if (files.length > 0) {
       setFileAttached(true);
       setFileName(files[0].name);
+      setFileObject(files[0]);
     }
   };
 
@@ -176,6 +178,7 @@ export default function UploadPage({
     if (files && files.length > 0) {
       setFileAttached(true);
       setFileName(files[0].name);
+      setFileObject(files[0]);
     }
   };
 
@@ -228,19 +231,32 @@ export default function UploadPage({
       }
     }
 
-    setTimeout(() => {
-      addResource(finalCourseId, {
-        title,
-        type: finalType as any,
-        format,
-        url: `/mock-files/${fileName}`,
-        uploadedBy: user?.name || "Unknown User",
-        uploadedAt: new Date().toISOString()
-      }, newCourseDetails);
+    const triggerUpload = (fileUrl: string) => {
+      setTimeout(() => {
+        addResource(finalCourseId, {
+          title,
+          type: finalType as any,
+          format,
+          url: fileUrl,
+          uploadedBy: user?.name || "Unknown User",
+          uploadedAt: new Date().toISOString()
+        }, newCourseDetails);
 
-      setSubmitting(false);
-      router.push(`/courses`);
-    }, 1000);
+        setSubmitting(false);
+        router.push(`/courses`);
+      }, 1000);
+    };
+
+    if (fileObject) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Url = reader.result as string;
+        triggerUpload(base64Url);
+      };
+      reader.readAsDataURL(fileObject);
+    } else {
+      triggerUpload(`/mock-files/${fileName}`);
+    }
   };
 
   return (
