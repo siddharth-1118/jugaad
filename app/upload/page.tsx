@@ -12,8 +12,9 @@ function getSubjectsForBranch(branchId: string, semester: number) {
   const branchData = (syllabusData as any)[branchId];
   const list = branchData ? branchData[semStr] || [] : [];
   
-  return list.map((item: any, idx: number) => ({
-    id: item.id || `${branchId}-${semStr}-${idx}`,
+  return list.map((item: any) => ({
+    // Use course code as stable unique ID — codes are unique per branch+semester
+    id: item.id || `${branchId}-${semStr}-${item.code}`,
     code: item.code,
     title: item.title,
     description: item.description || `Syllabus core course: ${item.title} (${item.code}).`
