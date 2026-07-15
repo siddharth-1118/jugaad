@@ -406,7 +406,7 @@ export default function UploadPage({
               type="file"
               onChange={handleFileSelect}
               className="hidden"
-              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.ppt,.pptx,.txt"
             />
             
             {fileAttached ? (
