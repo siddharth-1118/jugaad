@@ -159,7 +159,10 @@ export default function UploadPage({
     const syllabusSubjects = getSubjectsForBranch(selectedBranchId, selectedSemester);
     
     // Get database subjects for this branch and semester
-    const activeBranchName = BRANCH_FILES.find(b => b.id === selectedBranchId)?.name || "";
+    const activeBranchName = selectedBranchId === "custom-branch"
+      ? customBranchText.trim()
+      : (BRANCH_FILES.find(b => b.id === selectedBranchId)?.name || "");
+
     const dbSubjects = courses.filter(
       (c) => c.year === selectedYear && c.semester === selectedSemester && c.category === activeBranchName
     );
@@ -181,7 +184,7 @@ export default function UploadPage({
     });
 
     return merged;
-  }, [courses, selectedYear, selectedSemester, selectedBranchId]);
+  }, [courses, selectedYear, selectedSemester, selectedBranchId, customBranchText]);
 
   useEffect(() => {
     if (selectedSubjectId === "custom-subject") {
