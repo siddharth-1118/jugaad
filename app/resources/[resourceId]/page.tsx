@@ -421,7 +421,7 @@ export default function ResourceDetailsPage({
                 )}
 
                 {resource.format === "doc" && (
-                  fileUrl.startsWith("data:") ? (
+                  (fileUrl.startsWith("data:") || fileUrl.includes(".doc") || fileUrl.includes(".docx") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) ? (
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 max-w-xl w-full shadow-md text-zinc-800 dark:text-zinc-200 space-y-4 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <FileText className="h-16 w-16 text-blue-500" />
