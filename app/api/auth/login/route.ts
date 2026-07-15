@@ -27,10 +27,37 @@ const DEFAULT_HEADERS = {
 };
 
 // Helper to determine the user role from contributors list
-function checkRole(email: string): "Student" | "Contributor" | "Admin" {
+async function checkRole(email: string): Promise<"Student" | "Contributor" | "Admin"> {
   if (email.toLowerCase() === "sv3824@srmist.edu.in") {
     return "Admin";
   }
+  
+  // Check Supabase first
+  try {
+    const { data: dbItems, error } = await supabase
+      .from("items")
+      .select("photo_url")
+      .eq("type", "FOUND")
+      .eq("location", "contributor");
+    
+    if (!error && dbItems) {
+      const isContributor = dbItems.some((item: any) => {
+        try {
+          const meta = JSON.parse(item.photo_url || "{}");
+          return meta.email && meta.email.toLowerCase() === email.toLowerCase();
+        } catch {
+          return false;
+        }
+      });
+      if (isContributor) {
+        return "Contributor";
+      }
+    }
+  } catch (error) {
+    console.error("Error reading contributors from Supabase in login API:", error);
+  }
+
+  // Fallback to local JSON file
   try {
     const filePath = path.join(process.cwd(), "data", "contributors.json");
     if (fs.existsSync(filePath)) {
@@ -263,7 +290,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userRole = checkRole(email);
+    const userRole = await checkRole(email);
 
     const apiClient = createApiClient();
     let userName: string | null = null;
