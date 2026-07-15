@@ -180,26 +180,18 @@ const compressPDF = async (file: File): Promise<File> => {
 };
 
 const compressFile = async (file: File, addNotification: any): Promise<File> => {
-  const maxLimit = 8 * 1024 * 1024;
+  if (file.name.toLowerCase().endsWith(".pdf")) {
+    return file; // DO NOT COMPRESS OR TRUNCATE ANY PDF
+  }
+
+  const maxLimit = 8 * 1024 * 1024; // 8MB limit
   if (file.size <= maxLimit) return file;
+
   if (file.type.startsWith("image/")) {
     addNotification(`Compressing image "${file.name}" to fit size limit...`, "info");
     return await compressImage(file);
   }
-  if (file.name.toLowerCase().endsWith(".pdf")) {
-    addNotification(`Optimizing PDF "${file.name}" to reduce size...`, "info");
-    try {
-      const optimized = await compressPDF(file);
-      if (optimized.size <= maxLimit) {
-        addNotification("PDF successfully optimized under 8MB!", "success");
-        return optimized;
-      }
-      file = optimized;
-    } catch (err) {
-      console.error("PDF compression error:", err);
-    }
-  }
-  addNotification(`Compressing document "${file.name}" to fit the 8MB database limit...`, "info");
+
   try {
     const stream = file.stream().pipeThrough(new CompressionStream("gzip"));
     const response = new Response(stream);
@@ -214,13 +206,8 @@ const compressFile = async (file: File, addNotification: any): Promise<File> => 
   } catch (err) {
     console.error("CompressionStream error:", err);
   }
-  addNotification("Document size exceeds limit even after compression. Creating optimized draft summary.", "warning");
-  const textEncoder = new TextEncoder();
-  const truncatedContent = textEncoder.encode(`[Compressed Resource Draft]\nFile: ${file.name}\nOriginal Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB\nTimestamp: ${new Date().toISOString()}\n\nTo view this file, please request the high-resolution copy from the contributor.`);
-  return new File([truncatedContent], file.name.replace(/\.[^/.]+$/, "") + "-compressed.txt", {
-    type: "text/plain",
-    lastModified: Date.now()
-  });
+
+  return file; // Return original file instead of draft text summary
 };
 
 export default function CoursesCatalogPage({

@@ -188,6 +188,10 @@ const compressPDF = async (file: File): Promise<File> => {
 };
 
 const compressFile = async (file: File, addNotification: any): Promise<File> => {
+  if (file.name.toLowerCase().endsWith(".pdf")) {
+    return file; // DO NOT COMPRESS OR TRUNCATE ANY PDF
+  }
+
   const maxLimit = 8 * 1024 * 1024; // 8MB limit
   if (file.size <= maxLimit) return file;
 
@@ -196,28 +200,11 @@ const compressFile = async (file: File, addNotification: any): Promise<File> => 
     return await compressImage(file);
   }
 
-  // If it's a PDF, strip embedded image objects first
-  if (file.name.toLowerCase().endsWith(".pdf")) {
-    addNotification(`Optimizing PDF "${file.name}" to reduce size...`, "info");
-    try {
-      const optimized = await compressPDF(file);
-      if (optimized.size <= maxLimit) {
-        addNotification("PDF successfully optimized under 8MB!", "success");
-        return optimized;
-      }
-      file = optimized; // use optimized version for gzip fallback
-    } catch (err) {
-      console.error("PDF compression error:", err);
-    }
-  }
-
-  addNotification(`Compressing document "${file.name}" to fit the 8MB database limit...`, "info");
-  
+  // For other non-PDF files, try gzip compression
   try {
     const stream = file.stream().pipeThrough(new CompressionStream("gzip"));
     const response = new Response(stream);
     const blob = await response.blob();
-    
     if (blob.size < maxLimit) {
       addNotification("Document successfully compressed!", "success");
       return new File([blob], file.name + ".gz", {
@@ -229,14 +216,7 @@ const compressFile = async (file: File, addNotification: any): Promise<File> => 
     console.error("CompressionStream error:", err);
   }
 
-  // Fallback
-  addNotification("Document size exceeds limit even after compression. Creating optimized draft summary.", "warning");
-  const textEncoder = new TextEncoder();
-  const truncatedContent = textEncoder.encode(`[Compressed Resource Draft]\nFile: ${file.name}\nOriginal Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB\nTimestamp: ${new Date().toISOString()}\n\nTo view this file, please request the high-resolution copy from the contributor.`);
-  return new File([truncatedContent], file.name.replace(/\.[^/.]+$/, "") + "-compressed.txt", {
-    type: "text/plain",
-    lastModified: Date.now()
-  });
+  return file; // Return original file instead of draft text summary
 };
 
 export default function UploadPage({
