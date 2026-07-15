@@ -47,16 +47,7 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated, router]);
 
-  // Render loading or null state while redirecting
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-pulse text-zinc-400">Loading profile...</div>
-      </div>
-    );
-  }
-
-  // Find some activity logs - now safely inside user check
+  // Find some activity logs
   const userUploads = useMemo(() => {
     if (!user) return [];
     return courses.flatMap(c => 
@@ -65,6 +56,36 @@ export default function ProfilePage() {
         .map((r: any) => ({ ...r, courseId: c.id }))
     );
   }, [courses, user]);
+
+  const uploadsCount = userUploads.length;
+  const downloadsCount = userUploads.reduce((sum: number, r: any) => sum + r.downloadsCount, 0);
+
+  const dynamicBadges = useMemo(() => {
+    const list = [];
+    if (!user) return [];
+    if (user.role === "Admin") {
+      list.push("Founding Administrator");
+    }
+    if (uploadsCount >= 1) {
+      list.push("First Contribution");
+    }
+    if (uploadsCount >= 5) {
+      list.push("Elite Contributor");
+    }
+    if (downloadsCount >= 25) {
+      list.push("Knowledge Collector");
+    }
+    return list;
+  }, [user?.role, uploadsCount, downloadsCount]);
+
+  // Render loading or null state while redirecting (MUST BE AFTER ALL HOOKS)
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-pulse text-zinc-400">Loading profile...</div>
+      </div>
+    );
+  }
 
   const handleDeleteResource = async (courseId: string, resourceId: string, title: string) => {
     if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
@@ -99,26 +120,6 @@ export default function ProfilePage() {
       }
     }
   };
-
-  const uploadsCount = userUploads.length;
-  const downloadsCount = userUploads.reduce((sum: number, r: any) => sum + r.downloadsCount, 0);
-
-  const dynamicBadges = useMemo(() => {
-    const list = [];
-    if (user.role === "Admin") {
-      list.push("Founding Administrator");
-    }
-    if (uploadsCount >= 1) {
-      list.push("First Contribution");
-    }
-    if (uploadsCount >= 5) {
-      list.push("Elite Contributor");
-    }
-    if (downloadsCount >= 25) {
-      list.push("Knowledge Collector");
-    }
-    return list;
-  }, [user.role, uploadsCount, downloadsCount]);
 
   const getTier = () => {
     if (user.role === "Admin") return "System Administrator";
