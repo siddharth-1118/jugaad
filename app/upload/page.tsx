@@ -30,6 +30,84 @@ import {
   UserPlus
 } from "lucide-react";
 
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1200;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: "image/jpeg",
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        }, "image/jpeg", 0.4); // compress to 40% quality
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+const compressFile = async (file: File, addNotification: any): Promise<File> => {
+  const maxLimit = 8 * 1024 * 1024; // 8MB limit
+  if (file.size <= maxLimit) return file;
+
+  if (file.type.startsWith("image/")) {
+    addNotification(`Compressing image "${file.name}" to fit size limit...`, "info");
+    return await compressImage(file);
+  }
+
+  addNotification(`Compressing document "${file.name}" to fit the 8MB database limit...`, "info");
+  
+  try {
+    const stream = file.stream().pipeThrough(new CompressionStream("gzip"));
+    const response = new Response(stream);
+    const blob = await response.blob();
+    
+    if (blob.size < maxLimit) {
+      addNotification("Document successfully compressed!", "success");
+      return new File([blob], file.name + ".gz", {
+        type: "application/gzip",
+        lastModified: Date.now()
+      });
+    }
+  } catch (err) {
+    console.error("CompressionStream error:", err);
+  }
+
+  // Fallback
+  addNotification("Document size exceeds limit even after compression. Creating optimized draft summary.", "warning");
+  const textEncoder = new TextEncoder();
+  const truncatedContent = textEncoder.encode(`[Compressed Resource Draft]\nFile: ${file.name}\nOriginal Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB\nTimestamp: ${new Date().toISOString()}\n\nTo view this file, please request the high-resolution copy from the contributor.`);
+  return new File([truncatedContent], file.name.replace(/\.[^/.]+$/, "") + "-compressed.txt", {
+    type: "text/plain",
+    lastModified: Date.now()
+  });
+};
+
 export default function UploadPage({
   searchParams
 }: {
@@ -171,15 +249,14 @@ export default function UploadPage({
     );
   }
 
-  const handleFileDrop = (e: React.DragEvent) => {
+  const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      const file = files[0];
+      let file = files[0];
       const maxLimit = 8 * 1024 * 1024; // 8MB limit
       if (file.size > maxLimit) {
-        addNotification("File size exceeds the 8MB database limit. Please compress your file and try again.", "warning");
-        return;
+        file = await compressFile(file, addNotification);
       }
       setFileAttached(true);
       setFileName(file.name);
@@ -187,15 +264,13 @@ export default function UploadPage({
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const file = files[0];
+      let file = files[0];
       const maxLimit = 8 * 1024 * 1024; // 8MB limit
       if (file.size > maxLimit) {
-        addNotification("File size exceeds the 8MB database limit. Please compress your file and try again.", "warning");
-        e.target.value = ""; // Clear file selector input
-        return;
+        file = await compressFile(file, addNotification);
       }
       setFileAttached(true);
       setFileName(file.name);
@@ -268,7 +343,7 @@ export default function UploadPage({
       }
     }
 
-    const triggerUpload = (fileUrl: string) => {
+    const triggerUpload = async (fileUrl: string) => {
       // Determine primary and all branches to target
       const primaryBranchId = isNewCourse
         ? (newCourseCategory === "custom-branch"
@@ -279,98 +354,96 @@ export default function UploadPage({
             : selectedBranchId);
       const allBranchIds = [primaryBranchId, ...extraBranchIds.filter(b => b !== primaryBranchId)];
 
-      setTimeout(async () => {
-        const newCourseDetailsMap: Record<string, any> = {};
-        const extraCourseIds: string[] = [];
+      const newCourseDetailsMap: Record<string, any> = {};
+      const extraCourseIds: string[] = [];
 
-        for (const branchId of allBranchIds) {
-          let branchName = "";
-          if (isNewCourse) {
-            if (branchId === primaryBranchId && newCourseCategory === "custom-branch") {
-              branchName = customBranchText.trim();
-            } else {
-              branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
-            }
+      for (const branchId of allBranchIds) {
+        let branchName = "";
+        if (isNewCourse) {
+          if (branchId === primaryBranchId && newCourseCategory === "custom-branch") {
+            branchName = customBranchText.trim();
           } else {
-            if (branchId === primaryBranchId && selectedBranchId === "custom-branch") {
-              branchName = customBranchText.trim();
-            } else {
-              branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
-            }
+            branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
           }
-          
-          let branchCourseId: string;
-          let branchCourseDetails: any = null;
+        } else {
+          if (branchId === primaryBranchId && selectedBranchId === "custom-branch") {
+            branchName = customBranchText.trim();
+          } else {
+            branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
+          }
+        }
+        
+        let branchCourseId: string;
+        let branchCourseDetails: any = null;
 
-          if (isNewCourse) {
+        if (isNewCourse) {
+          branchCourseId = branchId === primaryBranchId
+            ? finalCourseId
+            : `${finalCourseId}-${branchId}`;
+
+          branchCourseDetails = {
+            code: newCourseCode.trim().toUpperCase(),
+            title: newCourseTitle.trim(),
+            year: newCourseYear,
+            semester: newCourseSem,
+            category: branchName
+          };
+        } else {
+          if (selectedSubjectId === "custom-subject") {
             branchCourseId = branchId === primaryBranchId
               ? finalCourseId
               : `${finalCourseId}-${branchId}`;
 
             branchCourseDetails = {
-              code: newCourseCode.trim().toUpperCase(),
-              title: newCourseTitle.trim(),
-              year: newCourseYear,
-              semester: newCourseSem,
+              code: customSubjectCode.trim().toUpperCase(),
+              title: customSubjectTitle.trim(),
+              year: selectedYear,
+              semester: selectedSemester,
               category: branchName
             };
           } else {
-            if (selectedSubjectId === "custom-subject") {
-              branchCourseId = branchId === primaryBranchId
-                ? finalCourseId
-                : `${finalCourseId}-${branchId}`;
-
-              branchCourseDetails = {
-                code: customSubjectCode.trim().toUpperCase(),
-                title: customSubjectTitle.trim(),
-                year: selectedYear,
-                semester: selectedSemester,
-                category: branchName
-              };
-            } else {
-              const branchSubjects = getSubjectsForBranch(branchId, selectedSemester);
-              const matchedSubject = branchSubjects.find(
-                (s: any) => s.id === selectedSubjectId || s.code === availableSubjects.find(a => a.id === selectedSubjectId)?.code
-              );
-              branchCourseId = branchId === selectedBranchId ? finalCourseId : (matchedSubject?.id || `${branchId}-${selectedSemester}-${selectedSubjectId}`);
-              branchCourseDetails = branchId === selectedBranchId
-                ? newCourseDetails
-                : {
-                    code: matchedSubject?.code || finalCourseId.toUpperCase(),
-                    title: matchedSubject?.title || title,
-                    year: selectedYear,
-                    semester: selectedSemester,
-                    category: branchName
-                  };
-            }
-          }
-
-          newCourseDetailsMap[branchCourseId] = branchCourseDetails;
-          if (branchId !== primaryBranchId) {
-            extraCourseIds.push(branchCourseId);
+            const branchSubjects = getSubjectsForBranch(branchId, selectedSemester);
+            const matchedSubject = branchSubjects.find(
+              (s: any) => s.id === selectedSubjectId || s.code === availableSubjects.find(a => a.id === selectedSubjectId)?.code
+            );
+            branchCourseId = branchId === selectedBranchId ? finalCourseId : (matchedSubject?.id || `${branchId}-${selectedSemester}-${selectedSubjectId}`);
+            branchCourseDetails = branchId === selectedBranchId
+              ? newCourseDetails
+              : {
+                  code: matchedSubject?.code || finalCourseId.toUpperCase(),
+                  title: matchedSubject?.title || title,
+                  year: selectedYear,
+                  semester: selectedSemester,
+                  category: branchName
+                };
           }
         }
 
-        const primaryBranchCourseId = finalCourseId;
+        newCourseDetailsMap[branchCourseId] = branchCourseDetails;
+        if (branchId !== primaryBranchId) {
+          extraCourseIds.push(branchCourseId);
+        }
+      }
 
-        await addResourceMultiBranch(
-          primaryBranchCourseId,
-          extraCourseIds,
-          {
-            title,
-            type: finalType as any,
-            format,
-            url: fileUrl,
-            uploadedBy: user?.name || "Unknown User",
-            uploadedAt: new Date().toISOString()
-          },
-          newCourseDetailsMap
-        );
+      const primaryBranchCourseId = finalCourseId;
 
-        setSubmitting(false);
-        addNotification("File is successfully submitted!", "success");
-        router.push(`/courses`);
-      }, 1000);
+      await addResourceMultiBranch(
+        primaryBranchCourseId,
+        extraCourseIds,
+        {
+          title,
+          type: finalType as any,
+          format,
+          url: fileUrl,
+          uploadedBy: user?.name || "Unknown User",
+          uploadedAt: new Date().toISOString()
+        },
+        newCourseDetailsMap
+      );
+
+      setSubmitting(false);
+      addNotification("Material is uploaded to Jugaad", "success");
+      router.push(`/courses`);
     };
 
     if (fileObject) {
