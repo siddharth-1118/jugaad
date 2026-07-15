@@ -977,14 +977,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]
     };
 
-    // Parallel DB insertions
+    // Chunk DB insertions in batches of 5 to prevent connection pool exhaustion / timeouts
     const allCourseIds = Array.from(new Set([primaryCourseId, ...extraCourseIds]));
-    const uploadPromises = allCourseIds.map(courseId => {
-      const details = newCourseDetailsMap[courseId];
-      return syncResourceToSupabase(courseId, newResource, details);
-    });
-
-    await Promise.all(uploadPromises);
+    const chunkSize = 5;
+    for (let i = 0; i < allCourseIds.length; i += chunkSize) {
+      const chunk = allCourseIds.slice(i, i + chunkSize);
+      const chunkPromises = chunk.map(courseId => {
+        const details = newCourseDetailsMap[courseId];
+        return syncResourceToSupabase(courseId, newResource, details);
+      });
+      await Promise.all(chunkPromises);
+      if (i + chunkSize < allCourseIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 150)); // tiny cooldown between batches
+      }
+    }
 
     // Sync database state back to React context in one unified call
     await syncWithSupabase(courses);
