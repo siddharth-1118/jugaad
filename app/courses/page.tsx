@@ -1279,6 +1279,32 @@ export default function CoursesCatalogPage({
                   }
 
                   const triggerUpdate = async (fileUrl?: string) => {
+                    let finalUrl = fileUrl;
+                    if (fileUrl && fileUrl.startsWith("data:") && editFileObject) {
+                      try {
+                        const driveRes = await fetch("/api/upload-drive", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json"
+                          },
+                          body: JSON.stringify({
+                            fileName: editFileObject.name,
+                            fileData: fileUrl,
+                            mimeType: editFileObject.type
+                          })
+                        });
+                        if (driveRes.ok) {
+                          const driveData = await driveRes.json();
+                          if (!driveData.fallback && driveData.webViewLink) {
+                            finalUrl = driveData.webViewLink;
+                            addNotification("New file uploaded to Google Drive!", "success");
+                          }
+                        }
+                      } catch (driveErr) {
+                        console.error("Google Drive upload failed, falling back to base64 database storage:", driveErr);
+                      }
+                    }
+
                     const updatePayload: any = {
                       title: editTitle.trim(),
                       type: editType as any,
@@ -1290,8 +1316,8 @@ export default function CoursesCatalogPage({
                       newCourseSemester: Number(editSemester),
                       newCourseCategory: finalBranch
                     };
-                    if (fileUrl) {
-                      updatePayload.url = fileUrl;
+                    if (finalUrl) {
+                      updatePayload.url = finalUrl;
                     }
                     await updateResource(editingResource.courseId, editingResource.id, updatePayload);
                     setEditingResource(null);

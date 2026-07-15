@@ -21,6 +21,15 @@ import {
   Trash2
 } from "lucide-react";
 
+const getGoogleDriveId = (url: string) => {
+  if (!url) return null;
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) return match[1];
+  const queryMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (queryMatch && queryMatch[1]) return queryMatch[1];
+  return null;
+};
+
 export default function ResourceDetailsPage({
   params,
   searchParams
@@ -147,6 +156,12 @@ export default function ResourceDetailsPage({
     incrementDownloads(course.id, resource.id);
     setHasDownloaded(true);
     addNotification(`Downloaded resource: ${resource.title}`, "success");
+
+    const driveId = getGoogleDriveId(fileUrl || resource.url);
+    if (driveId) {
+      window.open(`https://drive.google.com/uc?export=download&id=${driveId}`, "_blank");
+      return;
+    }
 
     const link = document.createElement("a");
     link.href = fileUrl || resource.url;
@@ -312,7 +327,17 @@ export default function ResourceDetailsPage({
               ) : (
                 /* Render player matches format */
                 <div className="w-full h-full flex items-center justify-center z-0">
-                  {resource.format === "pdf" && (
+                  {/* Google Drive Preview */}
+                  {fileUrl && (fileUrl.includes("drive.google.com") || getGoogleDriveId(fileUrl)) ? (
+                    <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-lg border border-border-card">
+                      <iframe
+                        src={`https://drive.google.com/file/d/${getGoogleDriveId(fileUrl) || fileUrl}/preview`}
+                        className="w-full h-[650px] border-none rounded-lg"
+                        title={resource.title}
+                        allow="autoplay"
+                      />
+                    </div>
+                  ) : resource.format === "pdf" && (
                     (fileUrl.startsWith("data:") || fileUrl.includes(".pdf") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) && !fileUrl.includes("example.com") ? (
                       <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-lg border border-border-card">
                         <object

@@ -559,6 +559,32 @@ export default function UploadPage({
         }
       }
 
+      let finalUrl = fileUrl;
+      if (fileUrl.startsWith("data:") && fileObject) {
+        try {
+          const driveRes = await fetch("/api/upload-drive", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              fileName: fileObject.name,
+              fileData: fileUrl,
+              mimeType: fileObject.type
+            })
+          });
+          if (driveRes.ok) {
+            const driveData = await driveRes.json();
+            if (!driveData.fallback && driveData.webViewLink) {
+              finalUrl = driveData.webViewLink;
+              addNotification("Material successfully stored in Google Drive!", "success");
+            }
+          }
+        } catch (driveErr) {
+          console.error("Google Drive API failed, falling back to Database storage:", driveErr);
+        }
+      }
+
       const primaryBranchCourseId = finalCourseId;
 
       await addResourceMultiBranch(
@@ -568,7 +594,7 @@ export default function UploadPage({
           title,
           type: finalType as any,
           format,
-          url: fileUrl,
+          url: finalUrl,
           uploadedBy: user?.name || "Unknown User",
           uploadedAt: new Date().toISOString()
         },
