@@ -649,9 +649,23 @@ export default function UploadPage({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="newCourseCategory" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    Branch / Specialization
-                  </label>
+                  <div className="flex justify-between items-center px-1">
+                    <label htmlFor="newCourseCategory" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                      Branch / Specialization
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewCourseCategory(BRANCH_FILES[0].name);
+                        const others = BRANCH_FILES.filter(b => b.name !== BRANCH_FILES[0].name).map(b => b.id);
+                        setExtraBranchIds(others);
+                        addNotification("Selected all branches for upload!", "info");
+                      }}
+                      className="text-[10px] text-primary font-bold hover:underline cursor-pointer"
+                    >
+                      Select All
+                    </button>
+                  </div>
                   <select
                     id="newCourseCategory"
                     value={newCourseCategory}
@@ -779,9 +793,23 @@ export default function UploadPage({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="selectBranch" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    Primary Branch / Specialization
-                  </label>
+                  <div className="flex justify-between items-center px-1">
+                    <label htmlFor="selectBranch" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                      Primary Branch / Specialization
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedBranchId(BRANCH_FILES[0].id);
+                        const others = BRANCH_FILES.filter(b => b.id !== BRANCH_FILES[0].id).map(b => b.id);
+                        setExtraBranchIds(others);
+                        addNotification("Selected all branches for upload!", "info");
+                      }}
+                      className="text-[10px] text-primary font-bold hover:underline cursor-pointer"
+                    >
+                      Select All
+                    </button>
+                  </div>
                   <select
                     id="selectBranch"
                     value={selectedBranchId}
