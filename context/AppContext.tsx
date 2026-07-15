@@ -146,6 +146,12 @@ interface AppContextType {
       category: string;
     }
   ) => void;
+  addResourceMultiBranch: (
+    primaryCourseId: string,
+    extraCourseIds: string[],
+    resource: Omit<Resource, "id" | "status" | "downloadsCount" | "ratings" | "versions">,
+    newCourseDetailsMap: Record<string, any>
+  ) => Promise<void>;
   approveResource: (courseId: string, resourceId: string, feedback: string) => void;
   rejectResource: (courseId: string, resourceId: string, feedback: string) => void;
   deleteResource: (courseId: string, resourceId: string) => Promise<void>;
@@ -948,6 +954,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const addResourceMultiBranch = async (
+    primaryCourseId: string,
+    extraCourseIds: string[],
+    resource: Omit<Resource, "id" | "status" | "downloadsCount" | "ratings" | "versions">,
+    newCourseDetailsMap: Record<string, any>
+  ) => {
+    if (!user) return;
+    const newResource: Resource = {
+      ...resource,
+      id: `res-${Date.now()}`,
+      status: user.role === "Admin" ? "Approved" : "Pending", // Admins skip moderation
+      downloadsCount: 0,
+      ratings: [],
+      versions: [
+        {
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          changesDescription: "Initial Uploaded File Draft",
+          modifiedBy: user.name
+        }
+      ]
+    };
+
+    // Parallel DB insertions
+    const allCourseIds = Array.from(new Set([primaryCourseId, ...extraCourseIds]));
+    const uploadPromises = allCourseIds.map(courseId => {
+      const details = newCourseDetailsMap[courseId];
+      return syncResourceToSupabase(courseId, newResource, details);
+    });
+
+    await Promise.all(uploadPromises);
+
+    // Sync database state back to React context in one unified call
+    await syncWithSupabase(courses);
+
+    updateUserStats(allCourseIds.length, 0);
+
+    if (user.role === "Admin") {
+      addNotification(`New resource '${resource.title}' uploaded and automatically approved.`, "success");
+      await sendDbNotification(
+        "New Resource Uploaded",
+        `Resource '${resource.title}' has been uploaded and automatically approved by Admin.`
+      );
+    } else {
+      addNotification(`Contribution '${resource.title}' submitted for moderation approval.`, "info");
+      await sendDbNotification(
+        "New Contribution Submitted",
+        `Material '${resource.title}' has been submitted by ${user.name} and is pending moderation.`,
+        "warning"
+      );
+    }
+  };
+
   const deleteResource = async (courseId: string, resourceId: string) => {
     let deletedTitle = "";
     const newCourses = courses.map(course => {
@@ -1319,6 +1378,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setFontFamily,
         courses,
         addResource,
+        addResourceMultiBranch,
         approveResource,
         rejectResource,
         deleteResource,

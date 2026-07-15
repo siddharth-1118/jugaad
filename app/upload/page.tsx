@@ -35,7 +35,7 @@ export default function UploadPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { courses, addResource, user, isAuthenticated, canUpload, addNotification } = useApp();
+  const { courses, addResource, addResourceMultiBranch, user, isAuthenticated, canUpload, addNotification } = useApp();
   const router = useRouter();
   const resolvedSearchParams = use(searchParams);
 
@@ -280,6 +280,9 @@ export default function UploadPage({
       const allBranchIds = [primaryBranchId, ...extraBranchIds.filter(b => b !== primaryBranchId)];
 
       setTimeout(async () => {
+        const newCourseDetailsMap: Record<string, any> = {};
+        const extraCourseIds: string[] = [];
+
         for (const branchId of allBranchIds) {
           let branchName = "";
           if (isNewCourse) {
@@ -297,10 +300,9 @@ export default function UploadPage({
           }
           
           let branchCourseId: string;
-          let branchCourseDetails: any;
+          let branchCourseDetails: any = null;
 
           if (isNewCourse) {
-            // New folder registry across branches
             branchCourseId = branchId === primaryBranchId
               ? finalCourseId
               : `${finalCourseId}-${branchId}`;
@@ -313,7 +315,6 @@ export default function UploadPage({
               category: branchName
             };
           } else {
-            // Existing course registry
             if (selectedSubjectId === "custom-subject") {
               branchCourseId = branchId === primaryBranchId
                 ? finalCourseId
@@ -344,15 +345,28 @@ export default function UploadPage({
             }
           }
 
-          await addResource(branchCourseId, {
+          newCourseDetailsMap[branchCourseId] = branchCourseDetails;
+          if (branchId !== primaryBranchId) {
+            extraCourseIds.push(branchCourseId);
+          }
+        }
+
+        const primaryBranchCourseId = finalCourseId;
+
+        await addResourceMultiBranch(
+          primaryBranchCourseId,
+          extraCourseIds,
+          {
             title,
             type: finalType as any,
             format,
             url: fileUrl,
             uploadedBy: user?.name || "Unknown User",
             uploadedAt: new Date().toISOString()
-          }, branchCourseDetails);
-        }
+          },
+          newCourseDetailsMap
+        );
+
         setSubmitting(false);
         router.push(`/courses`);
       }, 1000);
