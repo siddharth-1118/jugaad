@@ -967,15 +967,13 @@ export default function CoursesCatalogPage({
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    {res.url && (
-                      <a
-                        href={res.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    {res.id && (
+                      <Link
+                        href={`/resources/${res.id}?courseId=${res.courseId}`}
                         className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-all cursor-pointer flex items-center gap-1"
                       >
                         View File
-                      </a>
+                      </Link>
                     )}
                     <button
                       onClick={() => {
