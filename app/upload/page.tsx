@@ -383,29 +383,21 @@ export default function UploadPage({
     );
   }
 
-  const handleFileDrop = async (e: React.DragEvent) => {
+  const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      let file = files[0];
-      const maxLimit = 8 * 1024 * 1024; // 8MB limit
-      if (file.size > maxLimit) {
-        file = await compressFile(file, addNotification);
-      }
+      const file = files[0];
       setFileAttached(true);
       setFileName(file.name);
       setFileObject(file);
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      let file = files[0];
-      const maxLimit = 8 * 1024 * 1024; // 8MB limit
-      if (file.size > maxLimit) {
-        file = await compressFile(file, addNotification);
-      }
+      const file = files[0];
       setFileAttached(true);
       setFileName(file.name);
       setFileObject(file);
@@ -477,7 +469,7 @@ export default function UploadPage({
       }
     }
 
-    const triggerUpload = async (fileUrl: string) => {
+    const triggerUpload = async (finalUrl: string, isDriveUploaded: boolean) => {
       // Determine primary and all branches to target
       const primaryBranchId = isNewCourse
         ? (newCourseCategory === "custom-branch"
@@ -559,32 +551,6 @@ export default function UploadPage({
         }
       }
 
-      let finalUrl = fileUrl;
-      if (fileUrl.startsWith("data:") && fileObject) {
-        try {
-          const driveRes = await fetch("/api/upload-drive", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              fileName: fileObject.name,
-              fileData: fileUrl,
-              mimeType: fileObject.type
-            })
-          });
-          if (driveRes.ok) {
-            const driveData = await driveRes.json();
-            if (!driveData.fallback && driveData.webViewLink) {
-              finalUrl = driveData.webViewLink;
-              addNotification("Material successfully stored in Google Drive!", "success");
-            }
-          }
-        } catch (driveErr) {
-          console.error("Google Drive API failed, falling back to Database storage:", driveErr);
-        }
-      }
-
       const primaryBranchCourseId = finalCourseId;
 
       await addResourceMultiBranch(
@@ -602,19 +568,61 @@ export default function UploadPage({
       );
 
       setSubmitting(false);
-      addNotification("Material is uploaded to Jugaad", "success");
+      addNotification(
+        isDriveUploaded 
+          ? "Material successfully uploaded to Jugaad (stored in Google Drive)" 
+          : "Material is uploaded to Jugaad", 
+        "success"
+      );
       router.push(`/courses`);
     };
 
     if (fileObject) {
+      setSubmitting(true);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64Url = reader.result as string;
-        triggerUpload(base64Url);
+      reader.onloadend = async () => {
+        const originalBase64 = reader.result as string;
+        try {
+          const driveRes = await fetch("/api/upload-drive", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              fileName: fileObject.name,
+              fileData: originalBase64,
+              mimeType: fileObject.type
+            })
+          });
+          if (driveRes.ok) {
+            const driveData = await driveRes.json();
+            if (!driveData.fallback && driveData.webViewLink) {
+              await triggerUpload(driveData.webViewLink, true);
+              return;
+            }
+          }
+        } catch (driveErr) {
+          console.error("Google Drive API upload failed, attempting database storage:", driveErr);
+        }
+
+        // Fallback: compress file on the fly if needed for Supabase limit
+        let targetFile = fileObject;
+        const maxLimit = 8 * 1024 * 1024;
+        if (targetFile.size > maxLimit) {
+          addNotification("Google Drive not active. Optimizing file size for database storage...", "info");
+          targetFile = await compressFile(targetFile, addNotification);
+        }
+
+        const compressReader = new FileReader();
+        compressReader.onloadend = async () => {
+          const finalBase64 = compressReader.result as string;
+          await triggerUpload(finalBase64, false);
+        };
+        compressReader.readAsDataURL(targetFile);
       };
       reader.readAsDataURL(fileObject);
     } else {
-      triggerUpload(`/mock-files/${fileName}`);
+      triggerUpload(`/mock-files/${fileName}`, false);
     }
   };
 

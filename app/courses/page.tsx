@@ -497,14 +497,10 @@ export default function CoursesCatalogPage({
   const isStep4Done = isStep3Done && selectedSubjectId !== null;
   const isStep5Done = isStep4Done && selectedType !== "";
 
-  const handleEditFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      let file = files[0];
-      const maxLimit = 8 * 1024 * 1024; // 8MB limit
-      if (file.size > maxLimit) {
-        file = await compressFile(file, addNotification);
-      }
+      const file = files[0];
       setEditFileAttached(true);
       setEditFileName(file.name);
       setEditFileObject(file);
@@ -1278,33 +1274,7 @@ export default function CoursesCatalogPage({
                     }
                   }
 
-                  const triggerUpdate = async (fileUrl?: string) => {
-                    let finalUrl = fileUrl;
-                    if (fileUrl && fileUrl.startsWith("data:") && editFileObject) {
-                      try {
-                        const driveRes = await fetch("/api/upload-drive", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json"
-                          },
-                          body: JSON.stringify({
-                            fileName: editFileObject.name,
-                            fileData: fileUrl,
-                            mimeType: editFileObject.type
-                          })
-                        });
-                        if (driveRes.ok) {
-                          const driveData = await driveRes.json();
-                          if (!driveData.fallback && driveData.webViewLink) {
-                            finalUrl = driveData.webViewLink;
-                            addNotification("New file uploaded to Google Drive!", "success");
-                          }
-                        }
-                      } catch (driveErr) {
-                        console.error("Google Drive upload failed, falling back to base64 database storage:", driveErr);
-                      }
-                    }
-
+                  const triggerUpdate = async (finalUrl?: string, isDriveUploaded?: boolean) => {
                     const updatePayload: any = {
                       title: editTitle.trim(),
                       type: editType as any,
@@ -1321,14 +1291,53 @@ export default function CoursesCatalogPage({
                     }
                     await updateResource(editingResource.courseId, editingResource.id, updatePayload);
                     setEditingResource(null);
+                    if (isDriveUploaded) {
+                      addNotification("New file uploaded to Google Drive!", "success");
+                    }
                   };
 
                   if (editFileObject) {
                     setEditIsUploading(true);
                     const reader = new FileReader();
-                    reader.onloadend = () => {
-                      const base64Url = reader.result as string;
-                      triggerUpdate(base64Url);
+                    reader.onloadend = async () => {
+                      const originalBase64 = reader.result as string;
+                      try {
+                        const driveRes = await fetch("/api/upload-drive", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json"
+                          },
+                          body: JSON.stringify({
+                            fileName: editFileObject.name,
+                            fileData: originalBase64,
+                            mimeType: editFileObject.type
+                          })
+                        });
+                        if (driveRes.ok) {
+                          const driveData = await driveRes.json();
+                          if (!driveData.fallback && driveData.webViewLink) {
+                            await triggerUpdate(driveData.webViewLink, true);
+                            return;
+                          }
+                        }
+                      } catch (driveErr) {
+                        console.error("Google Drive upload failed, trying database storage:", driveErr);
+                      }
+
+                      // Fallback: compress file on the fly if needed for Supabase limit
+                      let targetFile = editFileObject;
+                      const maxLimit = 8 * 1024 * 1024;
+                      if (targetFile.size > maxLimit) {
+                        addNotification("Google Drive not active. Optimizing file size for database storage...", "info");
+                        targetFile = await compressFile(targetFile, addNotification);
+                      }
+
+                      const compressReader = new FileReader();
+                      compressReader.onloadend = async () => {
+                        const finalBase64 = compressReader.result as string;
+                        await triggerUpdate(finalBase64, false);
+                      };
+                      compressReader.readAsDataURL(targetFile);
                     };
                     reader.readAsDataURL(editFileObject);
                   } else {
