@@ -599,10 +599,13 @@ export default function UploadPage({
             if (!driveData.fallback && driveData.webViewLink) {
               await triggerUpload(driveData.webViewLink, true);
               return;
+            } else if (driveData.error) {
+              addNotification(`Google Drive Upload Error: ${driveData.error}`, "warning");
             }
           }
-        } catch (driveErr) {
+        } catch (driveErr: any) {
           console.error("Google Drive API upload failed, attempting database storage:", driveErr);
+          addNotification(`Google Drive Upload Failed: ${driveErr.message || driveErr}`, "warning");
         }
 
         // Fallback: compress file on the fly if needed for Supabase limit

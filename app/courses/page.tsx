@@ -1318,10 +1318,13 @@ export default function CoursesCatalogPage({
                           if (!driveData.fallback && driveData.webViewLink) {
                             await triggerUpdate(driveData.webViewLink, true);
                             return;
+                          } else if (driveData.error) {
+                            addNotification(`Google Drive Upload Error: ${driveData.error}`, "warning");
                           }
                         }
-                      } catch (driveErr) {
+                      } catch (driveErr: any) {
                         console.error("Google Drive upload failed, trying database storage:", driveErr);
+                        addNotification(`Google Drive Upload Failed: ${driveErr.message || driveErr}`, "warning");
                       }
 
                       // Fallback: compress file on the fly if needed for Supabase limit
