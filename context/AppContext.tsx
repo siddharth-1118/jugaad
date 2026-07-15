@@ -470,10 +470,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty("--accent-ring", choice.ring);
   };
 
+  const cacheCoursesToLocalStorage = (coursesList: Course[]) => {
+    try {
+      const sanitized = coursesList.map(c => ({
+        ...c,
+        resources: (c.resources || []).map(r => {
+          if (r.url && r.url.startsWith("data:")) {
+            return { ...r, url: "" }; // Strip large base64 data to keep localStorage footprint tiny
+          }
+          return r;
+        })
+      }));
+      localStorage.setItem("crl_courses", JSON.stringify(sanitized));
+    } catch (error) {
+      console.error("Failed to write crl_courses to localStorage:", error);
+    }
+  };
+
   // Sync utilities
   const saveCourses = (newCourses: Course[]) => {
     setCourses(newCourses);
-    localStorage.setItem("crl_courses", JSON.stringify(newCourses));
+    cacheCoursesToLocalStorage(newCourses);
   };
 
   const syncResourceToSupabase = async (
@@ -769,7 +786,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const updatedCourses = Array.from(coursesMap.values());
       setCourses(updatedCourses);
-      localStorage.setItem("crl_courses", JSON.stringify(updatedCourses));
+      cacheCoursesToLocalStorage(updatedCourses);
       console.log("[Supabase Sync] Successfully synced local state with DB!");
     } catch (e: any) {
       console.error("[Supabase Sync] Fatal sync error:", e.message);
