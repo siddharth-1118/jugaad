@@ -653,7 +653,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.log("[Supabase Sync] Fetching materials from Supabase...");
       const { data: dbItems, error } = await supabase
         .from("items")
-        .select("*")
+        .select("id, title, category, photo_url, location, created_at")
         .eq("type", "FOUND")
         .eq("location", "material");
 
@@ -753,7 +753,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               title: item.title,
               type: item.category as any,
               format: meta.format || "pdf",
-              url: item.description,
+              url: item.description || "",
               uploadedBy: meta.uploadedBy || "Syllabus Coordinator",
               uploadedAt: item.date_time || item.created_at,
               downloadsCount: meta.downloadsCount || 0,

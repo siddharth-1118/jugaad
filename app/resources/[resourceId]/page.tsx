@@ -64,6 +64,41 @@ export default function ResourceDetailsPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const [fileUrl, setFileUrl] = useState<string>("");
+  const [loadingFile, setLoadingFile] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (resource) {
+      if (resource.url && resource.url.trim() !== "") {
+        setFileUrl(resource.url);
+        setLoadingFile(false);
+      } else {
+        // Fetch from Supabase dynamically to avoid sync timeouts
+        setLoadingFile(true);
+        const loadFile = async () => {
+          try {
+            const { supabase } = await import("../../../lib/supabase");
+            const { data, error } = await supabase
+              .from("items")
+              .select("description")
+              .like("photo_url", `%${resourceId}%`);
+            
+            if (!error && data && data.length > 0) {
+              setFileUrl(data[0].description || "");
+            } else {
+              console.error("Failed to load file contents from Supabase:", error);
+            }
+          } catch (err) {
+            console.error("Failed to load supabase resource:", err);
+          } finally {
+            setLoadingFile(false);
+          }
+        };
+        loadFile();
+      }
+    }
+  }, [resource, resourceId]);
+
   if (!course || !resource) {
     return (
       <div className="text-center py-16 bg-bg-card border border-border-card rounded-2xl">
@@ -86,7 +121,7 @@ export default function ResourceDetailsPage({
     addNotification(`Downloaded resource: ${resource.title}`, "success");
 
     const link = document.createElement("a");
-    link.href = resource.url;
+    link.href = fileUrl || resource.url;
     link.setAttribute("download", `${resource.title}.${resource.format}`);
     document.body.appendChild(link);
     link.click();
@@ -217,7 +252,7 @@ export default function ResourceDetailsPage({
               </span>
               
               {/* PDF Zoom controls */}
-              {resource.format === "pdf" && resource.url.startsWith("data:") && (
+              {resource.format === "pdf" && fileUrl.startsWith("data:") && (
                 <div className="flex items-center gap-1.5">
                   <button 
                     onClick={() => setZoom(Math.max(50, zoom - 10))}
@@ -241,22 +276,28 @@ export default function ResourceDetailsPage({
             {/* Viewer Area */}
             <div className="relative min-h-[480px] bg-zinc-100 dark:bg-zinc-950 p-6 overflow-hidden flex items-center justify-center">
 
-              {/* Render player matches format */}
-              <div className="w-full h-full flex items-center justify-center z-0">
-                {resource.format === "pdf" && (
-                  resource.url.startsWith("data:") ? (
-                    <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-lg border border-border-card">
-                      <object
-                        data={resource.url}
-                        type="application/pdf"
-                        className="w-full h-[650px] border-none rounded-lg"
-                      >
-                        <iframe
-                          src={resource.url}
+              {loadingFile ? (
+                <div className="text-center space-y-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
+                  <p className="text-xs text-zinc-500 font-semibold">Downloading file contents from Supabase...</p>
+                </div>
+              ) : (
+                /* Render player matches format */
+                <div className="w-full h-full flex items-center justify-center z-0">
+                  {resource.format === "pdf" && (
+                    fileUrl.startsWith("data:") ? (
+                      <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-lg border border-border-card">
+                        <object
+                          data={fileUrl}
+                          type="application/pdf"
                           className="w-full h-[650px] border-none rounded-lg"
-                          title={resource.title}
-                        />
-                      </object>
+                        >
+                          <iframe
+                            src={fileUrl}
+                            className="w-full h-[650px] border-none rounded-lg"
+                            title={resource.title}
+                          />
+                        </object>
                     </div>
                   ) : (
                     <div 
@@ -289,10 +330,10 @@ export default function ResourceDetailsPage({
                 )}
 
                 {resource.format === "image" && (
-                  resource.url.startsWith("data:") ? (
+                  fileUrl.startsWith("data:") ? (
                     <div className="w-full max-h-[500px] overflow-auto flex items-center justify-center bg-zinc-950 rounded-2xl p-4 border border-border-card">
                       <img
-                        src={resource.url}
+                        src={fileUrl}
                         alt={resource.title}
                         className="max-w-full max-h-[450px] object-contain rounded-lg shadow-lg"
                       />
@@ -309,10 +350,10 @@ export default function ResourceDetailsPage({
                 )}
 
                 {resource.format === "video" && (
-                  resource.url.startsWith("data:") ? (
+                  fileUrl.startsWith("data:") ? (
                     <div className="max-w-xl w-full bg-[#05070a] border border-white/5 rounded-2xl shadow-xl overflow-hidden p-2">
                       <video
-                        src={resource.url}
+                        src={fileUrl}
                         controls
                         className="w-full max-h-[450px] rounded-lg"
                       />
@@ -322,10 +363,7 @@ export default function ResourceDetailsPage({
                       {/* Mock video canvas screen */}
                       <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 p-6 relative">
                         {isPlaying ? (
-                          <div className="text-center space-y-2">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto" />
-                            <p className="text-xs text-zinc-300">Streaming lecture guide video (01:24 / 45:10)...</p>
-                          </div>
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto" />
                         ) : (
                           <button 
                             onClick={() => setIsPlaying(true)}
@@ -355,14 +393,14 @@ export default function ResourceDetailsPage({
                 )}
 
                 {resource.format === "doc" && (
-                  resource.url.startsWith("data:") ? (
+                  fileUrl.startsWith("data:") ? (
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 max-w-xl w-full shadow-md text-zinc-800 dark:text-zinc-200 space-y-4 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <FileText className="h-16 w-16 text-blue-500" />
                         <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">{resource.title}</h3>
                         <p className="text-xs text-zinc-500 font-semibold">Microsoft Word Document (.docx)</p>
                         <a
-                          href={resource.url}
+                          href={fileUrl}
                           download={`${resource.title}.docx`}
                           className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5"
                         >
@@ -384,8 +422,8 @@ export default function ResourceDetailsPage({
                     </div>
                   )
                 )}
-              </div>
-
+                </div>
+              )}
             </div>
           </div>
 
