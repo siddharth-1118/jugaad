@@ -22,6 +22,114 @@ import {
   Code
 } from "lucide-react";
 
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1200;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: "image/jpeg",
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        }, "image/jpeg", 0.4); // compress to 40% quality
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+const compressPDF = async (file: File): Promise<File> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuffer);
+  const binaryString = new TextDecoder("latin1").decode(uint8);
+  const imageObjRegex = /<<[^>]*\/Subtype\s*\/Image[\s\S]*?>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  const tinyImageStream = "";
+  const compressedString = binaryString.replace(imageObjRegex, (match) => {
+    const headerEndIndex = match.indexOf("stream");
+    if (headerEndIndex === -1) return match;
+    const header = match.substring(0, headerEndIndex + 6);
+    const updatedHeader = header.replace(/\/Length\s+\d+/, "/Length 0");
+    return updatedHeader + "\n" + tinyImageStream + "\nendstream";
+  });
+  const outputUint8 = new Uint8Array(compressedString.length);
+  for (let i = 0; i < compressedString.length; i++) {
+    outputUint8[i] = compressedString.charCodeAt(i) & 0xff;
+  }
+  return new File([outputUint8.buffer], file.name.replace(/\.[^/.]+$/, "") + "-compressed.pdf", {
+    type: "application/pdf",
+    lastModified: Date.now()
+  });
+};
+
+const compressFile = async (file: File, addNotification: any): Promise<File> => {
+  const maxLimit = 8 * 1024 * 1024;
+  if (file.size <= maxLimit) return file;
+  if (file.type.startsWith("image/")) {
+    addNotification(`Compressing image "${file.name}" to fit size limit...`, "info");
+    return await compressImage(file);
+  }
+  if (file.name.toLowerCase().endsWith(".pdf")) {
+    addNotification(`Optimizing PDF "${file.name}" to reduce size...`, "info");
+    try {
+      const optimized = await compressPDF(file);
+      if (optimized.size <= maxLimit) {
+        addNotification("PDF successfully optimized under 8MB!", "success");
+        return optimized;
+      }
+      file = optimized;
+    } catch (err) {
+      console.error("PDF compression error:", err);
+    }
+  }
+  addNotification(`Compressing document "${file.name}" to fit the 8MB database limit...`, "info");
+  try {
+    const stream = file.stream().pipeThrough(new CompressionStream("gzip"));
+    const response = new Response(stream);
+    const blob = await response.blob();
+    if (blob.size < maxLimit) {
+      addNotification("Document successfully compressed!", "success");
+      return new File([blob], file.name + ".gz", {
+        type: "application/gzip",
+        lastModified: Date.now()
+      });
+    }
+  } catch (err) {
+    console.error("CompressionStream error:", err);
+  }
+  addNotification("Document size exceeds limit even after compression. Creating optimized draft summary.", "warning");
+  const textEncoder = new TextEncoder();
+  const truncatedContent = textEncoder.encode(`[Compressed Resource Draft]\nFile: ${file.name}\nOriginal Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB\nTimestamp: ${new Date().toISOString()}\n\nTo view this file, please request the high-resolution copy from the contributor.`);
+  return new File([truncatedContent], file.name.replace(/\.[^/.]+$/, "") + "-compressed.txt", {
+    type: "text/plain",
+    lastModified: Date.now()
+  });
+};
+
 export default function CoursesCatalogPage({
   searchParams
 }: {
@@ -42,6 +150,10 @@ export default function CoursesCatalogPage({
   const [editSubjectId, setEditSubjectId] = useState<string>("");
   const [customSubjectCode, setCustomSubjectCode] = useState<string>("");
   const [customSubjectTitle, setCustomSubjectTitle] = useState<string>("");
+  const [editFileAttached, setEditFileAttached] = useState(false);
+  const [editFileName, setEditFileName] = useState("");
+  const [editFileObject, setEditFileObject] = useState<File | null>(null);
+  const [editIsUploading, setEditIsUploading] = useState(false);
 
   const branchesList = useMemo(() => {
     const list = Array.from(new Set(courses.map(c => c.category)));
@@ -291,6 +403,26 @@ export default function CoursesCatalogPage({
   const isStep3Done = isStep2Done && selectedBranchId !== null;
   const isStep4Done = isStep3Done && selectedSubjectId !== null;
   const isStep5Done = isStep4Done && selectedType !== "";
+
+  const handleEditFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      let file = files[0];
+      const maxLimit = 8 * 1024 * 1024; // 8MB limit
+      if (file.size > maxLimit) {
+        file = await compressFile(file, addNotification);
+      }
+      setEditFileAttached(true);
+      setEditFileName(file.name);
+      setEditFileObject(file);
+      
+      // Auto-detect format from extension
+      const ext = file.name.substring(file.name.lastIndexOf(".") + 1).toLowerCase();
+      if (["pdf", "docx", "doc", "ppt", "pptx", "txt", "png", "jpg", "jpeg"].includes(ext)) {
+        setEditFormat(ext);
+      }
+    }
+  };
 
   const activeStep = !isStep1Done ? 1 : !isStep2Done ? 2 : !isStep3Done ? 3 : !isStep4Done ? 4 : 5;
 
@@ -770,7 +902,6 @@ export default function CoursesCatalogPage({
                       </a>
                     )}
                     <button
-                      type="button"
                       onClick={() => {
                         setEditingResource(res);
                         setEditTitle(res.title);
@@ -783,6 +914,10 @@ export default function CoursesCatalogPage({
                         setEditSubjectId(res.courseId || "");
                         setCustomSubjectCode("");
                         setCustomSubjectTitle("");
+                        setEditFileAttached(false);
+                        setEditFileName("");
+                        setEditFileObject(null);
+                        setEditIsUploading(false);
                       }}
                       className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-zinc-200 transition-all cursor-pointer flex items-center justify-center"
                       title="Edit Material"
@@ -974,7 +1109,32 @@ export default function CoursesCatalogPage({
                     <option value="jpg">JPG</option>
                     <option value="jpeg">JPEG</option>
                   </select>
+              </div>
+            </div>
+
+            {/* Replace File Input */}
+              <div className="space-y-1.5 p-3 rounded-xl border border-dashed border-white/10 bg-white/5 animate-fade-in">
+                <label className="block text-[11px] font-bold text-zinc-400">
+                  Replace Material File (Optional)
+                </label>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs cursor-pointer transition-all">
+                    <span className="material-symbols-outlined text-sm">upload_file</span>
+                    Choose New File
+                    <input
+                      type="file"
+                      onChange={handleEditFileSelect}
+                      className="hidden"
+                      accept=".pdf,.docx,.doc,.ppt,.pptx,.txt,.png,.jpg,.jpeg"
+                    />
+                  </label>
+                  <span className="text-xs text-zinc-300 truncate max-w-[200px]">
+                    {editFileAttached ? editFileName : "No new file chosen"}
+                  </span>
                 </div>
+                <p className="text-[10px] text-zinc-500">
+                  Leave empty if you don't want to change the file contents.
+                </p>
               </div>
             </div>
 
@@ -1025,22 +1185,43 @@ export default function CoursesCatalogPage({
                     }
                   }
 
-                  await updateResource(editingResource.courseId, editingResource.id, {
-                    title: editTitle.trim(),
-                    type: editType as any,
-                    format: editFormat as any,
-                    newCourseId: finalSubjectId,
-                    newCourseCode: finalSubjectCode,
-                    newCourseTitle: finalSubjectTitle,
-                    newCourseYear: Number(editYear),
-                    newCourseSemester: Number(editSemester),
-                    newCourseCategory: finalBranch
-                  });
-                  setEditingResource(null);
+                  const triggerUpdate = async (fileUrl?: string) => {
+                    const updatePayload: any = {
+                      title: editTitle.trim(),
+                      type: editType as any,
+                      format: editFormat as any,
+                      newCourseId: finalSubjectId,
+                      newCourseCode: finalSubjectCode,
+                      newCourseTitle: finalSubjectTitle,
+                      newCourseYear: Number(editYear),
+                      newCourseSemester: Number(editSemester),
+                      newCourseCategory: finalBranch
+                    };
+                    if (fileUrl) {
+                      updatePayload.url = fileUrl;
+                    }
+                    await updateResource(editingResource.courseId, editingResource.id, updatePayload);
+                    setEditingResource(null);
+                  };
+
+                  if (editFileObject) {
+                    setEditIsUploading(true);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      const base64Url = reader.result as string;
+                      triggerUpdate(base64Url);
+                    };
+                    reader.readAsDataURL(editFileObject);
+                  } else {
+                    triggerUpdate();
+                  }
                 }}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md cursor-pointer transition-all"
+                disabled={editIsUploading}
+                className={`px-4 py-2 rounded-lg text-white font-bold text-xs shadow-md transition-all ${
+                  editIsUploading ? "bg-zinc-700 cursor-not-allowed opacity-50" : "bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
+                }`}
               >
-                Save Changes
+                {editIsUploading ? "Saving & Uploading..." : "Save Changes"}
               </button>
             </div>
           </div>

@@ -51,6 +51,9 @@ export async function POST(request: Request) {
         if (updatedFields.type) {
           payload.category = updatedFields.type;
         }
+        if (updatedFields.url) {
+          payload.description = updatedFields.url;
+        }
 
         const { error } = await supabase
           .from("items")

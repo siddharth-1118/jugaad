@@ -1164,7 +1164,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       type: targetResource.type,
       format: targetResource.format,
       realStatus: targetResource.status,
-      feedback: targetResource.feedback
+      feedback: targetResource.feedback,
+      url: targetResource.url
     };
 
     if (updatedFields.newCourseId) {
