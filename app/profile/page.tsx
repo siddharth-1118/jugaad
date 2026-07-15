@@ -104,14 +104,14 @@ export default function ProfilePage() {
     if (selectedResourceIds.length === 0) return;
     if (window.confirm(`Are you sure you want to delete the ${selectedResourceIds.length} selected files?`)) {
       try {
-        const promises = selectedResourceIds.map(resId => {
+        for (const resId of selectedResourceIds) {
           const resItem = userUploads.find(u => u.id === resId);
           if (resItem) {
-            return deleteResource(resItem.courseId, resId);
+            await deleteResource(resItem.courseId, resId);
+            // Wait 150ms between deletes to let Postgres breathe
+            await new Promise(resolve => setTimeout(resolve, 150));
           }
-          return Promise.resolve();
-        });
-        await Promise.all(promises);
+        }
         addNotification(`Successfully deleted ${selectedResourceIds.length} resources.`, "success");
         setSelectedResourceIds([]);
       } catch (err) {
