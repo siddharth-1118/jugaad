@@ -71,6 +71,34 @@ const compressImage = (file: File): Promise<File> => {
   });
 };
 
+const compressPDF = async (file: File): Promise<File> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuffer);
+  const binaryString = new TextDecoder("latin1").decode(uint8);
+  
+  // Strip image streams and set their length to 0 to compress size
+  const imageObjRegex = /<<[^>]*\/Subtype\s*\/Image[\s\S]*?>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  const tinyImageStream = "";
+  
+  const compressedString = binaryString.replace(imageObjRegex, (match) => {
+    const headerEndIndex = match.indexOf("stream");
+    if (headerEndIndex === -1) return match;
+    const header = match.substring(0, headerEndIndex + 6);
+    const updatedHeader = header.replace(/\/Length\s+\d+/, "/Length 0");
+    return updatedHeader + "\n" + tinyImageStream + "\nendstream";
+  });
+  
+  const outputUint8 = new Uint8Array(compressedString.length);
+  for (let i = 0; i < compressedString.length; i++) {
+    outputUint8[i] = compressedString.charCodeAt(i) & 0xff;
+  }
+  
+  return new File([outputUint8.buffer], file.name.replace(/\.[^/.]+$/, "") + "-compressed.pdf", {
+    type: "application/pdf",
+    lastModified: Date.now()
+  });
+};
+
 const compressFile = async (file: File, addNotification: any): Promise<File> => {
   const maxLimit = 8 * 1024 * 1024; // 8MB limit
   if (file.size <= maxLimit) return file;
@@ -78,6 +106,21 @@ const compressFile = async (file: File, addNotification: any): Promise<File> => 
   if (file.type.startsWith("image/")) {
     addNotification(`Compressing image "${file.name}" to fit size limit...`, "info");
     return await compressImage(file);
+  }
+
+  // If it's a PDF, strip embedded image objects first
+  if (file.name.toLowerCase().endsWith(".pdf")) {
+    addNotification(`Optimizing PDF "${file.name}" to reduce size...`, "info");
+    try {
+      const optimized = await compressPDF(file);
+      if (optimized.size <= maxLimit) {
+        addNotification("PDF successfully optimized under 8MB!", "success");
+        return optimized;
+      }
+      file = optimized; // use optimized version for gzip fallback
+    } catch (err) {
+      console.error("PDF compression error:", err);
+    }
   }
 
   addNotification(`Compressing document "${file.name}" to fit the 8MB database limit...`, "info");

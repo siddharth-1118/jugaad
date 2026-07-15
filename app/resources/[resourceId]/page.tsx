@@ -69,9 +69,35 @@ export default function ResourceDetailsPage({
 
   useEffect(() => {
     if (resource) {
+      const decompressGzip = async (rawUrl: string): Promise<string> => {
+        if (rawUrl.startsWith("data:application/gzip;base64,") || rawUrl.startsWith("data:application/x-gzip;base64,")) {
+          const base64Data = rawUrl.substring(rawUrl.indexOf(",") + 1);
+          const binaryString = window.atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+          const decompressedBlob = await new Response(stream).blob();
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            const pdfBlob = new Blob([decompressedBlob], { type: "application/pdf" });
+            reader.readAsDataURL(pdfBlob);
+          });
+        }
+        return rawUrl;
+      };
+
       if (resource.url && resource.url.trim() !== "") {
-        setFileUrl(resource.url);
-        setLoadingFile(false);
+        setLoadingFile(true);
+        decompressGzip(resource.url)
+          .then(url => setFileUrl(url))
+          .catch(err => {
+            console.error("Local decompression failed:", err);
+            setFileUrl(resource.url);
+          })
+          .finally(() => setLoadingFile(false));
       } else {
         // Fetch from Supabase dynamically to avoid sync timeouts
         setLoadingFile(true);
@@ -84,7 +110,9 @@ export default function ResourceDetailsPage({
               .like("photo_url", `%${resourceId}%`);
             
             if (!error && data && data.length > 0) {
-              setFileUrl(data[0].description || "");
+              const rawUrl = data[0].description || "";
+              const decompressed = await decompressGzip(rawUrl);
+              setFileUrl(decompressed);
             } else {
               console.error("Failed to load file contents from Supabase:", error);
             }
@@ -285,7 +313,7 @@ export default function ResourceDetailsPage({
                 /* Render player matches format */
                 <div className="w-full h-full flex items-center justify-center z-0">
                   {resource.format === "pdf" && (
-                    fileUrl.startsWith("data:") ? (
+                    (fileUrl.startsWith("data:") || fileUrl.includes(".pdf") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) ? (
                       <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-lg border border-border-card">
                         <object
                           data={fileUrl}
@@ -330,7 +358,7 @@ export default function ResourceDetailsPage({
                 )}
 
                 {resource.format === "image" && (
-                  fileUrl.startsWith("data:") ? (
+                  (fileUrl.startsWith("data:") || fileUrl.includes(".png") || fileUrl.includes(".jpg") || fileUrl.includes(".jpeg") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) ? (
                     <div className="w-full max-h-[500px] overflow-auto flex items-center justify-center bg-zinc-950 rounded-2xl p-4 border border-border-card">
                       <img
                         src={fileUrl}
@@ -350,7 +378,7 @@ export default function ResourceDetailsPage({
                 )}
 
                 {resource.format === "video" && (
-                  fileUrl.startsWith("data:") ? (
+                  (fileUrl.startsWith("data:") || fileUrl.includes(".mp4") || fileUrl.includes(".webm") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) ? (
                     <div className="max-w-xl w-full bg-[#05070a] border border-white/5 rounded-2xl shadow-xl overflow-hidden p-2">
                       <video
                         src={fileUrl}
