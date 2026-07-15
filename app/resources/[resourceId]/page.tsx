@@ -313,7 +313,7 @@ export default function ResourceDetailsPage({
                 /* Render player matches format */
                 <div className="w-full h-full flex items-center justify-center z-0">
                   {resource.format === "pdf" && (
-                    (fileUrl.startsWith("data:") || fileUrl.includes(".pdf") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) ? (
+                    (fileUrl.startsWith("data:") || fileUrl.includes(".pdf") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) && !fileUrl.includes("example.com") ? (
                       <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-lg border border-border-card">
                         <object
                           data={fileUrl}
@@ -339,8 +339,8 @@ export default function ResourceDetailsPage({
                       <h3 className="text-lg font-bold border-l-3 border-accent-primary pl-2 text-zinc-900 dark:text-zinc-50">
                         {resource.title}
                       </h3>
-                      <p className="text-xs leading-5">
-                        This is a simulated PDF file preview compiled for {course.title}. In a production environment, this workspace connects to an S3 bucket or Supabase Storage and renders vector-tiles using PDF.js.
+                      <p className="text-xs leading-5 text-indigo-400 font-semibold bg-indigo-500/10 p-2.5 rounded-lg border border-indigo-500/20">
+                        Notice: This is a placeholder preview for this document. To upload the actual document content, please click "Edit Material" on the course library page and attach your PDF file.
                       </p>
                       <div className="space-y-2">
                         <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Recommended Prep Instructions:</p>
@@ -358,7 +358,7 @@ export default function ResourceDetailsPage({
                 )}
 
                 {resource.format === "image" && (
-                  (fileUrl.startsWith("data:") || fileUrl.includes(".png") || fileUrl.includes(".jpg") || fileUrl.includes(".jpeg") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) ? (
+                  (fileUrl.startsWith("data:") || fileUrl.includes(".png") || fileUrl.includes(".jpg") || fileUrl.includes(".jpeg") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) && !fileUrl.includes("example.com") ? (
                     <div className="w-full max-h-[500px] overflow-auto flex items-center justify-center bg-zinc-950 rounded-2xl p-4 border border-border-card">
                       <img
                         src={fileUrl}
@@ -372,13 +372,13 @@ export default function ResourceDetailsPage({
                         <FileSpreadsheet className="h-16 w-16 text-accent-primary" />
                       </div>
                       <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{resource.title}</h4>
-                      <p className="text-xs text-zinc-500 mt-1">Simulated JPG Scan Resource Sheet</p>
+                      <p className="text-xs text-zinc-500 mt-1">Placeholder Image Resource Sheet</p>
                     </div>
                   )
                 )}
 
                 {resource.format === "video" && (
-                  (fileUrl.startsWith("data:") || fileUrl.includes(".mp4") || fileUrl.includes(".webm") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) ? (
+                  (fileUrl.startsWith("data:") || fileUrl.includes(".mp4") || fileUrl.includes(".webm") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) && !fileUrl.includes("example.com") ? (
                     <div className="max-w-xl w-full bg-[#05070a] border border-white/5 rounded-2xl shadow-xl overflow-hidden p-2">
                       <video
                         src={fileUrl}
@@ -421,7 +421,7 @@ export default function ResourceDetailsPage({
                 )}
 
                 {resource.format === "doc" && (
-                  (fileUrl.startsWith("data:") || fileUrl.includes(".doc") || fileUrl.includes(".docx") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) ? (
+                  (fileUrl.startsWith("data:") || fileUrl.includes(".doc") || fileUrl.includes(".docx") || fileUrl.startsWith("/") || fileUrl.startsWith("http")) && !fileUrl.includes("example.com") ? (
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 max-w-xl w-full shadow-md text-zinc-800 dark:text-zinc-200 space-y-4 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <FileText className="h-16 w-16 text-blue-500" />
