@@ -71,6 +71,7 @@ export default function UploadPage({
   const [newCourseYear, setNewCourseYear] = useState<number>(urlYear);
   const [newCourseSem, setNewCourseSem] = useState<number>(urlSem);
   const [newCourseCategory, setNewCourseCategory] = useState(BRANCH_FILES[0]?.name || "Artificial Intelligence");
+  const [customBranchText, setCustomBranchText] = useState("");
 
   // Dynamically calculate subjects for the selected Branch and Semester
   const availableSubjects = React.useMemo(() => {
@@ -208,14 +209,14 @@ export default function UploadPage({
 
     setSubmitting(true);
 
-    let newCourseDetails = undefined;
+     let newCourseDetails = undefined;
     if (isNewCourse) {
       newCourseDetails = {
         code: newCourseCode.trim().toUpperCase(),
         title: newCourseTitle.trim(),
         year: newCourseYear,
         semester: newCourseSem,
-        category: newCourseCategory.trim() || "Computer Science"
+        category: (newCourseCategory === "custom-branch" ? customBranchText.trim() : newCourseCategory.trim()) || "Computer Science"
       };
     } else {
       const courseExists = courses.some(c => c.id === selectedSubjectId);
@@ -236,13 +237,20 @@ export default function UploadPage({
     const triggerUpload = (fileUrl: string) => {
       // Determine primary and all branches to target
       const primaryBranchId = isNewCourse
-        ? (BRANCH_FILES.find(b => b.name === newCourseCategory)?.id || BRANCH_FILES[0]?.id)
+        ? (newCourseCategory === "custom-branch"
+            ? customBranchText.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")
+            : (BRANCH_FILES.find(b => b.name === newCourseCategory)?.id || BRANCH_FILES[0]?.id))
         : selectedBranchId;
       const allBranchIds = [primaryBranchId, ...extraBranchIds.filter(b => b !== primaryBranchId)];
 
       setTimeout(async () => {
         for (const branchId of allBranchIds) {
-          const branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
+          let branchName = "";
+          if (isNewCourse && branchId === primaryBranchId && newCourseCategory === "custom-branch") {
+            branchName = customBranchText.trim();
+          } else {
+            branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
+          }
           
           let branchCourseId: string;
           let branchCourseDetails: any;
@@ -503,7 +511,7 @@ export default function UploadPage({
                   <select
                     id="newCourseCategory"
                     value={newCourseCategory}
-                    onChange={(e) => { setNewCourseCategory(e.target.value); setExtraBranchIds([]); }}
+                    onChange={(e) => { setNewCourseCategory(e.target.value); setExtraBranchIds([]); setCustomBranchText(""); }}
                     className="block w-full rounded-lg border-none bg-[#05070a] p-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden cursor-pointer"
                   >
                     {BRANCH_FILES.map((branch) => (
@@ -511,8 +519,26 @@ export default function UploadPage({
                         {branch.name}
                       </option>
                     ))}
+                    <option value="custom-branch">-- Custom Specialization / Branch --</option>
                   </select>
                 </div>
+
+                {newCourseCategory === "custom-branch" && (
+                  <div className="space-y-1.5 animate-fade-in">
+                    <label htmlFor="customBranchText" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                      Custom Branch / Specialization Name
+                    </label>
+                    <input
+                      id="customBranchText"
+                      type="text"
+                      required={newCourseCategory === "custom-branch"}
+                      value={customBranchText}
+                      onChange={(e) => setCustomBranchText(e.target.value)}
+                      placeholder="e.g. Robotics & Automation"
+                      className="block w-full rounded-lg border-none bg-surface-container-low px-3.5 py-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden"
+                    />
+                  </div>
+                )}
 
                 {/* Multi-branch selector for New Folder */}
                 <div className="space-y-1.5">
