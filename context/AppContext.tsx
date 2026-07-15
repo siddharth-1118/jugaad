@@ -155,7 +155,14 @@ interface AppContextType {
   updateResource: (
     courseId: string,
     resourceId: string,
-    updatedFields: Partial<Resource>
+    updatedFields: Partial<Resource> & {
+      newCourseId?: string;
+      newCourseCode?: string;
+      newCourseTitle?: string;
+      newCourseYear?: number;
+      newCourseSemester?: number;
+      newCourseCategory?: string;
+    }
   ) => Promise<void>;
   approveResource: (courseId: string, resourceId: string, feedback: string) => void;
   rejectResource: (courseId: string, resourceId: string, feedback: string) => void;
@@ -1060,29 +1067,114 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateResource = async (
     courseId: string,
     resourceId: string,
-    updatedFields: Partial<Resource>
+    updatedFields: Partial<Resource> & {
+      newCourseId?: string;
+      newCourseCode?: string;
+      newCourseTitle?: string;
+      newCourseYear?: number;
+      newCourseSemester?: number;
+      newCourseCategory?: string;
+    }
   ) => {
-    let updatedTitle = "";
-    const newCourses = courses.map(course => {
-      if (course.id === courseId) {
-        return {
-          ...course,
-          resources: course.resources.map(res => {
-            if (res.id === resourceId) {
-              updatedTitle = updatedFields.title || res.title;
-              return {
-                ...res,
-                ...updatedFields
-              };
-            }
-            return res;
-          })
-        };
+    let targetResource: Resource | null = null;
+    
+    // Find the original resource in courses
+    for (const course of courses) {
+      const found = course.resources.find(r => r.id === resourceId);
+      if (found) {
+        targetResource = { ...found, ...updatedFields };
+        break;
       }
-      return course;
-    });
+    }
 
-    saveCourses(newCourses);
+    if (!targetResource) {
+      console.error("Resource not found to update:", resourceId);
+      return;
+    }
+
+    const destCourseId = updatedFields.newCourseId || courseId;
+    let updatedCoursesList: Course[] = [];
+
+    if (destCourseId !== courseId) {
+      // Remove from old course
+      updatedCoursesList = courses.map(course => {
+        if (course.id === courseId) {
+          return {
+            ...course,
+            resources: course.resources.filter(r => r.id !== resourceId)
+          };
+        }
+        return course;
+      });
+
+      // Add to new course (or create it if it doesn't exist)
+      const courseExists = updatedCoursesList.some(c => c.id === destCourseId);
+      if (!courseExists && updatedFields.newCourseId) {
+        const newCourse: Course = {
+          id: destCourseId,
+          code: updatedFields.newCourseCode || destCourseId.toUpperCase(),
+          title: updatedFields.newCourseTitle || "Untitled Course",
+          year: updatedFields.newCourseYear || 1,
+          semester: updatedFields.newCourseSemester || 1,
+          category: updatedFields.newCourseCategory || "Computer Science",
+          description: "Student contributed course folder.",
+          resources: [targetResource]
+        };
+        updatedCoursesList.push(newCourse);
+      } else {
+        updatedCoursesList = updatedCoursesList.map(course => {
+          if (course.id === destCourseId) {
+            // Remove duplicates if any
+            const cleanResources = course.resources.filter(r => r.id !== resourceId);
+            return {
+              ...course,
+              resources: [...cleanResources, targetResource!]
+            };
+          }
+          return course;
+        });
+      }
+    } else {
+      // In-place update
+      updatedCoursesList = courses.map(course => {
+        if (course.id === courseId) {
+          return {
+            ...course,
+            resources: course.resources.map(res => {
+              if (res.id === resourceId) {
+                return targetResource!;
+              }
+              return res;
+            })
+          };
+        }
+        return course;
+      });
+    }
+
+    // Clean up empty folders (except seeded default ones)
+    const defaultsIds = ["cs201", "cs202", "cs203", "cs204", "cs205", "math102", "cs301"];
+    updatedCoursesList = updatedCoursesList.filter(c => c.resources.length > 0 || defaultsIds.includes(c.id));
+
+    saveCourses(updatedCoursesList);
+
+    // Map properties for Supabase api payload
+    const payloadFields: any = {
+      title: targetResource.title,
+      type: targetResource.type,
+      format: targetResource.format,
+      realStatus: targetResource.status,
+      feedback: targetResource.feedback
+    };
+
+    if (updatedFields.newCourseId) {
+      payloadFields.courseId = updatedFields.newCourseId;
+      payloadFields.courseCode = updatedFields.newCourseCode;
+      payloadFields.courseTitle = updatedFields.newCourseTitle;
+      payloadFields.courseYear = updatedFields.newCourseYear;
+      payloadFields.courseSemester = updatedFields.newCourseSemester;
+      payloadFields.courseCategory = updatedFields.newCourseCategory;
+    }
 
     try {
       const response = await fetch("/api/update-resource", {
@@ -1090,7 +1182,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ courseId, resourceId, updatedFields })
+        body: JSON.stringify({ courseId, resourceId, updatedFields: payloadFields })
       });
       if (!response.ok) {
         const errData = await response.json();
@@ -1100,7 +1192,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error("Supabase update error:", e.message);
     }
 
-    addNotification(`Material '${updatedTitle}' has been updated successfully.`, "success");
+    addNotification(`Material '${targetResource.title}' has been updated successfully.`, "success");
   };
 
   const approveResource = async (courseId: string, resourceId: string, feedback: string) => {

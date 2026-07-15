@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useState, useMemo } from "react";
+import React, { use, useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useApp } from "../../context/AppContext";
 import { BRANCH_FILES } from "../../lib/constants";
@@ -35,6 +35,38 @@ export default function CoursesCatalogPage({
   const [editTitle, setEditTitle] = useState("");
   const [editType, setEditType] = useState("");
   const [editFormat, setEditFormat] = useState("");
+  const [editYear, setEditYear] = useState<number>(1);
+  const [editSemester, setEditSemester] = useState<number>(1);
+  const [editBranchId, setEditBranchId] = useState<string>("");
+  const [customBranchName, setCustomBranchName] = useState<string>("");
+  const [editSubjectId, setEditSubjectId] = useState<string>("");
+  const [customSubjectCode, setCustomSubjectCode] = useState<string>("");
+  const [customSubjectTitle, setCustomSubjectTitle] = useState<string>("");
+
+  const branchesList = useMemo(() => {
+    const list = Array.from(new Set(courses.map(c => c.category)));
+    return list.filter(Boolean);
+  }, [courses]);
+
+  const editAvailableSubjects = useMemo(() => {
+    if (!editingResource) return [];
+    const selectedBranchName = editBranchId === "custom" ? customBranchName : editBranchId;
+    return courses.filter(c => 
+      c.year === Number(editYear) && 
+      c.semester === Number(editSemester) && 
+      c.category === selectedBranchName
+    );
+  }, [courses, editYear, editSemester, editBranchId, customBranchName, editingResource]);
+
+  // Keep semester matching year selection in edit mode
+  useEffect(() => {
+    if (!editingResource) return;
+    const minSem = (editYear - 1) * 2 + 1;
+    const maxSem = (editYear - 1) * 2 + 2;
+    if (editSemester < minSem || editSemester > maxSem) {
+      setEditSemester(minSem);
+    }
+  }, [editYear, editSemester, editingResource]);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"catalog" | "my-uploads">("catalog");
@@ -744,6 +776,13 @@ export default function CoursesCatalogPage({
                         setEditTitle(res.title);
                         setEditType(res.type);
                         setEditFormat(res.format);
+                        setEditYear(res.courseYear || 1);
+                        setEditSemester(res.courseSemester || 1);
+                        setEditBranchId(res.courseCategory || "");
+                        setCustomBranchName("");
+                        setEditSubjectId(res.courseId || "");
+                        setCustomSubjectCode("");
+                        setCustomSubjectTitle("");
                       }}
                       className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-zinc-200 transition-all cursor-pointer flex items-center justify-center"
                       title="Edit Material"
@@ -768,11 +807,11 @@ export default function CoursesCatalogPage({
 
       {/* Edit Modal */}
       {editingResource && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0c10] p-6 space-y-6 shadow-2xl animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0a0c10] p-6 space-y-5 shadow-2xl animate-scale-up my-8 max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-indigo-400 text-lg">edit_note</span>
+                <span className="material-symbols-outlined text-indigo-400 text-lg font-bold">edit_note</span>
                 Edit Contributed Resource
               </h3>
               <button
@@ -785,9 +824,115 @@ export default function CoursesCatalogPage({
             </div>
 
             <div className="space-y-4">
+              
+              {/* Year & Semester Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-zinc-400">Academic Year</label>
+                  <select
+                    value={editYear}
+                    onChange={(e) => setEditYear(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                  >
+                    {[1, 2, 3, 4].map(y => (
+                      <option key={y} value={y}>Year {y}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-zinc-400">Semester</label>
+                  <select
+                    value={editSemester}
+                    onChange={(e) => setEditSemester(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                  >
+                    {[(editYear - 1) * 2 + 1, (editYear - 1) * 2 + 2].map(s => (
+                      <option key={s} value={s}>Semester {s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Specialization / Branch Select */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-zinc-400">Specialization / Branch</label>
+                <select
+                  value={editBranchId}
+                  onChange={(e) => setEditBranchId(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                >
+                  <option value="">Select Specialization...</option>
+                  {branchesList.map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                  <option value="custom">-- Custom Specialization Name --</option>
+                </select>
+              </div>
+
+              {/* Custom branch text field */}
+              {editBranchId === "custom" && (
+                <div className="space-y-1.5 p-3 rounded-xl border border-dashed border-white/10 bg-white/5 animate-fade-in">
+                  <label className="block text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Custom Specialization Name</label>
+                  <input
+                    type="text"
+                    value={customBranchName}
+                    onChange={(e) => setCustomBranchName(e.target.value)}
+                    placeholder="e.g. Mechanical Engineering"
+                    className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50"
+                  />
+                </div>
+              )}
+
+              {/* Subject Select */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-zinc-400">Course Subject Folder</label>
+                <select
+                  value={editSubjectId}
+                  onChange={(e) => setEditSubjectId(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                >
+                  <option value="">Select Course Folder...</option>
+                  {editAvailableSubjects.map(sub => (
+                    <option key={sub.id} value={sub.id}>[{sub.code}] {sub.title}</option>
+                  ))}
+                  <option value="custom">-- Custom Subject Folder --</option>
+                </select>
+              </div>
+
+              {/* Custom subject details */}
+              {editSubjectId === "custom" && (
+                <div className="space-y-3.5 p-3 rounded-xl border border-dashed border-white/10 bg-white/5 animate-fade-in">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-1 space-y-1">
+                      <label className="block text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Subject Code</label>
+                      <input
+                        type="text"
+                        value={customSubjectCode}
+                        onChange={(e) => setCustomSubjectCode(e.target.value)}
+                        placeholder="CS101"
+                        className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50"
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <label className="block text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Subject Title</label>
+                      <input
+                        type="text"
+                        value={customSubjectTitle}
+                        onChange={(e) => setCustomSubjectTitle(e.target.value)}
+                        placeholder="Programming in C"
+                        className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <hr className="border-white/5" />
+
               {/* Title input */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-zinc-400">Resource Title</label>
+                <label className="block text-[11px] font-bold text-zinc-400">Resource Title</label>
                 <input
                   type="text"
                   value={editTitle}
@@ -797,38 +942,39 @@ export default function CoursesCatalogPage({
                 />
               </div>
 
-              {/* Type Select */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-zinc-400">Resource Category</label>
-                <select
-                  value={editType}
-                  onChange={(e) => setEditType(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
-                >
-                  {subjectCategories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Category & Format Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-zinc-400">Category</label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                  >
+                    {subjectCategories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Format Select */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-zinc-400">File Format</label>
-                <select
-                  value={editFormat}
-                  onChange={(e) => setEditFormat(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
-                >
-                  <option value="pdf">PDF</option>
-                  <option value="docx">Docx</option>
-                  <option value="doc">Doc</option>
-                  <option value="ppt">PPT</option>
-                  <option value="pptx">PPTX</option>
-                  <option value="txt">TXT</option>
-                  <option value="png">PNG</option>
-                  <option value="jpg">JPG</option>
-                  <option value="jpeg">JPEG</option>
-                </select>
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-zinc-400">Format</label>
+                  <select
+                    value={editFormat}
+                    onChange={(e) => setEditFormat(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                  >
+                    <option value="pdf">PDF</option>
+                    <option value="docx">Docx</option>
+                    <option value="doc">Doc</option>
+                    <option value="ppt">PPT</option>
+                    <option value="pptx">PPTX</option>
+                    <option value="txt">TXT</option>
+                    <option value="png">PNG</option>
+                    <option value="jpg">JPG</option>
+                    <option value="jpeg">JPEG</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -847,10 +993,48 @@ export default function CoursesCatalogPage({
                     alert("Please specify a valid resource title.");
                     return;
                   }
+
+                  let finalBranch = editBranchId === "custom" ? customBranchName.trim() : editBranchId;
+                  if (!finalBranch) {
+                    alert("Please specify a valid specialization/branch.");
+                    return;
+                  }
+
+                  let finalSubjectId = editSubjectId;
+                  let finalSubjectCode = "";
+                  let finalSubjectTitle = "";
+
+                  if (editSubjectId === "custom") {
+                    if (!customSubjectCode.trim() || !customSubjectTitle.trim()) {
+                      alert("Please specify a valid custom subject code and title.");
+                      return;
+                    }
+                    // Generate a new custom course id
+                    finalSubjectId = `c-${Date.now()}`;
+                    finalSubjectCode = customSubjectCode.trim().toUpperCase();
+                    finalSubjectTitle = customSubjectTitle.trim();
+                  } else {
+                    const matchedSub = courses.find(c => c.id === editSubjectId);
+                    if (matchedSub) {
+                      finalSubjectCode = matchedSub.code;
+                      finalSubjectTitle = matchedSub.title;
+                    } else {
+                      // Fallback if none matches
+                      finalSubjectCode = editSubjectId.toUpperCase();
+                      finalSubjectTitle = editSubjectId;
+                    }
+                  }
+
                   await updateResource(editingResource.courseId, editingResource.id, {
                     title: editTitle.trim(),
                     type: editType as any,
-                    format: editFormat as any
+                    format: editFormat as any,
+                    newCourseId: finalSubjectId,
+                    newCourseCode: finalSubjectCode,
+                    newCourseTitle: finalSubjectTitle,
+                    newCourseYear: Number(editYear),
+                    newCourseSemester: Number(editSemester),
+                    newCourseCategory: finalBranch
                   });
                   setEditingResource(null);
                 }}
