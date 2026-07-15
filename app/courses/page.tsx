@@ -63,23 +63,116 @@ const compressImage = (file: File): Promise<File> => {
   });
 };
 
+const compressSingleJpeg = (jpegBytes: Uint8Array): Promise<Uint8Array> => {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([jpegBytes as any], { type: "image/jpeg" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      const maxDim = 1000;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((compressedBlob) => {
+        if (compressedBlob) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const arr = new Uint8Array(reader.result as ArrayBuffer);
+            resolve(arr);
+          };
+          reader.readAsArrayBuffer(compressedBlob);
+        } else {
+          reject(new Error("Canvas toBlob returned null"));
+        }
+      }, "image/jpeg", 0.35); // 35% quality
+    };
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
+    img.src = url;
+  });
+};
+
 const compressPDF = async (file: File): Promise<File> => {
   const arrayBuffer = await file.arrayBuffer();
   const uint8 = new Uint8Array(arrayBuffer);
   const binaryString = new TextDecoder("latin1").decode(uint8);
-  const imageObjRegex = /<<[^>]*\/Subtype\s*\/Image[\s\S]*?>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
-  const tinyImageStream = "";
-  const compressedString = binaryString.replace(imageObjRegex, (match) => {
-    const headerEndIndex = match.indexOf("stream");
-    if (headerEndIndex === -1) return match;
-    const header = match.substring(0, headerEndIndex + 6);
-    const updatedHeader = header.replace(/\/Length\s+\d+/, "/Length 0");
-    return updatedHeader + "\n" + tinyImageStream + "\nendstream";
-  });
-  const outputUint8 = new Uint8Array(compressedString.length);
-  for (let i = 0; i < compressedString.length; i++) {
-    outputUint8[i] = compressedString.charCodeAt(i) & 0xff;
+  
+  // Find all DCTDecode image objects
+  const imageRegex = /(<<[^>]*\/Subtype\s*\/Image[^>]*\/Filter\s*\/DCTDecode[^>]*>>\s*stream\r?\n)([\s\S]*?)(\r?\nendstream)/g;
+  let matches = [...binaryString.matchAll(imageRegex)];
+  
+  if (matches.length === 0) {
+    const looseRegex = /(<<[^>]*\/Filter\s*\/DCTDecode[^>]*\/Subtype\s*\/Image[^>]*>>\s*stream\r?\n)([\s\S]*?)(\r?\nendstream)/g;
+    matches = [...binaryString.matchAll(looseRegex)];
   }
+  
+  if (matches.length === 0) return file;
+  
+  let offset = 0;
+  let newBinaryString = "";
+  
+  for (const match of matches) {
+    const matchIndex = match.index!;
+    const header = match[1];
+    const rawStream = match[2];
+    const footer = match[3];
+    
+    newBinaryString += binaryString.substring(offset, matchIndex);
+    
+    const jpegBytes = new Uint8Array(rawStream.length);
+    for (let i = 0; i < rawStream.length; i++) {
+      jpegBytes[i] = rawStream.charCodeAt(i);
+    }
+    
+    try {
+      const compressedJpegBytes = await compressSingleJpeg(jpegBytes);
+      if (compressedJpegBytes.length < rawStream.length) {
+        const paddingLength = rawStream.length - compressedJpegBytes.length;
+        const paddedBytes = new Uint8Array(rawStream.length);
+        paddedBytes.set(compressedJpegBytes);
+        paddedBytes.fill(32, compressedJpegBytes.length); // Space padding
+        
+        let paddedString = "";
+        const chunkSize = 16384;
+        for (let i = 0; i < paddedBytes.length; i += chunkSize) {
+          paddedString += String.fromCharCode.apply(null, Array.from(paddedBytes.subarray(i, i + chunkSize)));
+        }
+        
+        newBinaryString += header + paddedString + footer;
+      } else {
+        newBinaryString += match[0];
+      }
+    } catch (err) {
+      console.error("Scanned page compression failed:", err);
+      newBinaryString += match[0];
+    }
+    
+    offset = matchIndex + match[0].length;
+  }
+  
+  newBinaryString += binaryString.substring(offset);
+  
+  const outputUint8 = new Uint8Array(newBinaryString.length);
+  for (let i = 0; i < newBinaryString.length; i++) {
+    outputUint8[i] = newBinaryString.charCodeAt(i) & 0xff;
+  }
+  
   return new File([outputUint8.buffer], file.name.replace(/\.[^/.]+$/, "") + "-compressed.pdf", {
     type: "application/pdf",
     lastModified: Date.now()
