@@ -505,16 +505,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   ) => {
     try {
-      let uploaderEmail = user?.email || "gv3917@srmist.edu.in";
+      let uploaderEmail: string | null = user?.email || null;
       
-      const { data: dbUser } = await supabase
-        .from("users")
-        .select("email")
-        .eq("email", uploaderEmail)
-        .single();
-      
-      if (!dbUser) {
-        uploaderEmail = "gv3917@srmist.edu.in";
+      if (uploaderEmail) {
+        const { data: dbUser } = await supabase
+          .from("users")
+          .select("email")
+          .eq("email", uploaderEmail)
+          .single();
+        
+        if (!dbUser) {
+          uploaderEmail = null;
+        }
       }
 
       const { data: dbItems } = await supabase
