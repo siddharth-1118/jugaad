@@ -1034,23 +1034,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Also remove from Supabase
     try {
-      const { data: dbItems } = await supabase
+      let { data: matchedItems } = await supabase
         .from("items")
-        .select("id, photo_url")
-        .eq("type", "FOUND")
-        .eq("location", "material");
+        .select("id")
+        .like("photo_url", `%"id":"${resourceId}"%`)
+        .like("photo_url", `%"courseId":"${courseId}"%`);
 
-      const targetItem = dbItems?.find((item: any) => {
-        try {
-          const meta = JSON.parse(item.photo_url);
-          return meta.id === resourceId;
-        } catch {
-          return false;
+      if (!matchedItems || matchedItems.length === 0) {
+        // Fallback for older items that might not have courseId stored in photo_url JSON
+        const { data: fallbackItems } = await supabase
+          .from("items")
+          .select("id")
+          .like("photo_url", `%"id":"${resourceId}"%`);
+        matchedItems = fallbackItems;
+      }
+
+      if (matchedItems && matchedItems.length > 0) {
+        for (const item of matchedItems) {
+          await supabase.from("items").delete().eq("id", item.id);
         }
-      });
-
-      if (targetItem) {
-        await supabase.from("items").delete().eq("id", targetItem.id);
       }
     } catch (e: any) {
       console.error("Supabase delete error:", e.message);
