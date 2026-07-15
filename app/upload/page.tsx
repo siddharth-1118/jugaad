@@ -175,18 +175,31 @@ export default function UploadPage({
     e.preventDefault();
     const files = e.dataTransfer.files;
     if (files.length > 0) {
+      const file = files[0];
+      const maxLimit = 8 * 1024 * 1024; // 8MB limit
+      if (file.size > maxLimit) {
+        addNotification("File size exceeds the 8MB database limit. Please compress your file and try again.", "warning");
+        return;
+      }
       setFileAttached(true);
-      setFileName(files[0].name);
-      setFileObject(files[0]);
+      setFileName(file.name);
+      setFileObject(file);
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
+      const file = files[0];
+      const maxLimit = 8 * 1024 * 1024; // 8MB limit
+      if (file.size > maxLimit) {
+        addNotification("File size exceeds the 8MB database limit. Please compress your file and try again.", "warning");
+        e.target.value = ""; // Clear file selector input
+        return;
+      }
       setFileAttached(true);
-      setFileName(files[0].name);
-      setFileObject(files[0]);
+      setFileName(file.name);
+      setFileObject(file);
     }
   };
 
@@ -393,7 +406,7 @@ export default function UploadPage({
               type="file"
               onChange={handleFileSelect}
               className="hidden"
-              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.mp4"
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
             />
             
             {fileAttached ? (
@@ -417,7 +430,7 @@ export default function UploadPage({
                   <span className="material-symbols-outlined text-primary text-[40px] drop-shadow-[0_0_12px_rgba(192,193,255,0.4)]">upload_file</span>
                 </div>
                 <h3 className="font-headline-md text-xl font-bold text-on-surface mb-sm">Drag & drop files here</h3>
-                <p className="text-on-surface-variant text-xs mb-lg">Support for PDF, DOCX, Video, and high-res images (Max 50MB)</p>
+                <p className="text-on-surface-variant text-xs mb-lg">Support for PDF, DOCX, and high-res images (Max 8MB)</p>
                 <span className="px-6 py-2.5 bg-primary text-on-primary text-xs font-bold rounded-lg shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 inline-block">
                   Browse Files
                 </span>
