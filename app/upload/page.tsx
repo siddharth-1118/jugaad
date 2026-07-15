@@ -587,9 +587,29 @@ export default function UploadPage({
 
                 {/* Multi-branch selector for New Folder */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    Also Visible In (Multi-branch)
-                  </label>
+                  <div className="flex justify-between items-center px-1">
+                    <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                      Also Visible In (Multi-branch)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const selectable = BRANCH_FILES.filter(b => b.name !== newCourseCategory);
+                        const allSelected = selectable.every(b => extraBranchIds.includes(b.id));
+                        if (allSelected) {
+                          setExtraBranchIds(prev => prev.filter(id => !selectable.some(b => b.id === id)));
+                        } else {
+                          const ids = selectable.map(b => b.id);
+                          setExtraBranchIds(prev => Array.from(new Set([...prev, ...ids])));
+                        }
+                      }}
+                      className="text-[10px] text-primary font-bold hover:underline cursor-pointer"
+                    >
+                      {BRANCH_FILES.filter(b => b.name !== newCourseCategory).every(b => extraBranchIds.includes(b.id))
+                        ? "Deselect All"
+                        : "Select All"}
+                    </button>
+                  </div>
                   <div className="bg-[#05070a] rounded-lg p-2 space-y-1 max-h-36 overflow-y-auto border border-white/5">
                     {BRANCH_FILES.filter(b => b.name !== newCourseCategory).map((branch) => {
                       const checked = extraBranchIds.includes(branch.id);
@@ -697,9 +717,29 @@ export default function UploadPage({
 
                 {/* Multi-branch selector */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    Also Visible In (Multi-branch)
-                  </label>
+                  <div className="flex justify-between items-center px-1">
+                    <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                      Also Visible In (Multi-branch)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const selectable = BRANCH_FILES.filter(b => b.id !== selectedBranchId);
+                        const allSelected = selectable.every(b => extraBranchIds.includes(b.id));
+                        if (allSelected) {
+                          setExtraBranchIds(prev => prev.filter(id => !selectable.some(b => b.id === id)));
+                        } else {
+                          const ids = selectable.map(b => b.id);
+                          setExtraBranchIds(prev => Array.from(new Set([...prev, ...ids])));
+                        }
+                      }}
+                      className="text-[10px] text-primary font-bold hover:underline cursor-pointer"
+                    >
+                      {BRANCH_FILES.filter(b => b.id !== selectedBranchId).every(b => extraBranchIds.includes(b.id))
+                        ? "Deselect All"
+                        : "Select All"}
+                    </button>
+                  </div>
                   <div className="bg-[#05070a] rounded-lg p-2 space-y-1 max-h-36 overflow-y-auto border border-white/5">
                     {BRANCH_FILES.filter(b => b.id !== selectedBranchId).map((branch) => {
                       const checked = extraBranchIds.includes(branch.id);
