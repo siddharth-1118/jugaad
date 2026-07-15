@@ -17,11 +17,12 @@ import {
   IdCard,
   Building2,
   GraduationCap,
+  Phone,
+  UserCheck,
+  Trash2,
   BookOpen,
   Users,
-  Hash,
-  Phone,
-  UserCheck
+  Hash
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -32,9 +33,12 @@ export default function ProfilePage() {
     toggleDarkMode,
     setAccentColor,
     setFontFamily,
-    courses
+    courses,
+    deleteResource,
+    addNotification
   } = useApp();
   const router = useRouter();
+  const [selectedResourceIds, setSelectedResourceIds] = React.useState<string[]>([]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -56,9 +60,45 @@ export default function ProfilePage() {
   const userUploads = useMemo(() => {
     if (!user) return [];
     return courses.flatMap(c => 
-      c.resources.filter((r: any) => r.uploadedBy === user.name)
+      c.resources
+        .filter((r: any) => r.uploadedBy === user.name)
+        .map((r: any) => ({ ...r, courseId: c.id }))
     );
   }, [courses, user]);
+
+  const handleDeleteResource = async (courseId: string, resourceId: string, title: string) => {
+    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
+      try {
+        await deleteResource(courseId, resourceId);
+        addNotification(`Successfully deleted "${title}"`, "success");
+        setSelectedResourceIds(prev => prev.filter(id => id !== resourceId));
+      } catch (err) {
+        console.error("Failed to delete resource:", err);
+        addNotification("Failed to delete resource.", "warning");
+      }
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedResourceIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete the ${selectedResourceIds.length} selected files?`)) {
+      try {
+        const promises = selectedResourceIds.map(resId => {
+          const resItem = userUploads.find(u => u.id === resId);
+          if (resItem) {
+            return deleteResource(resItem.courseId, resId);
+          }
+          return Promise.resolve();
+        });
+        await Promise.all(promises);
+        addNotification(`Successfully deleted ${selectedResourceIds.length} resources.`, "success");
+        setSelectedResourceIds([]);
+      } catch (err) {
+        console.error("Failed to delete selected resources:", err);
+        addNotification("Failed to delete some resources.", "warning");
+      }
+    }
+  };
 
   const uploadsCount = userUploads.length;
   const downloadsCount = userUploads.reduce((sum: number, r: any) => sum + r.downloadsCount, 0);
@@ -281,10 +321,43 @@ export default function ProfilePage() {
 
           {/* Past Activity Log History Trackers */}
           <div className="bg-bg-card border border-border-card rounded-2xl p-6 shadow-xs space-y-4">
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
-              <LayoutGrid className="h-5 w-5 text-accent-primary" />
-              Activity Feed Tracker
-            </h3>
+            <div className="flex items-center justify-between border-b border-border-card/50 pb-3">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+                <LayoutGrid className="h-5 w-5 text-accent-primary" />
+                Activity Feed Tracker
+              </h3>
+              
+              {userUploads.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-zinc-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={userUploads.length > 0 && selectedResourceIds.length === userUploads.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedResourceIds(userUploads.map(u => u.id));
+                        } else {
+                          setSelectedResourceIds([]);
+                        }
+                      }}
+                      className="accent-accent-primary rounded-xs"
+                    />
+                    Select All
+                  </label>
+                  
+                  {selectedResourceIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelected}
+                      className="px-3 py-1.5 rounded-lg bg-red-550 hover:bg-red-600 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1 cursor-pointer animate-fade-in"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete Selected ({selectedResourceIds.length})
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             
             <div className="space-y-3">
               {userUploads.length === 0 ? (
@@ -292,31 +365,56 @@ export default function ProfilePage() {
                   No uploads tracked for your active name. Visit <a href="/upload" className="text-accent-primary underline">Upload</a> to publish notes.
                 </div>
               ) : (
-                userUploads.map((res) => (
-                  <div key={res.id} className="flex items-center justify-between p-3.5 border border-border-card bg-zinc-50/50 dark:bg-zinc-900/40 rounded-xl text-sm">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-accent-primary" />
-                      <div>
-                        <p className="font-semibold text-zinc-800 dark:text-zinc-200">{res.title}</p>
-                        <span className="text-xs text-zinc-400 capitalize">{res.type} &bull; {res.format}</span>
+                userUploads.map((res) => {
+                  const isChecked = selectedResourceIds.includes(res.id);
+                  return (
+                    <div key={res.id} className={`flex items-center justify-between p-3.5 border rounded-xl text-sm transition-colors ${
+                      isChecked ? "border-accent-primary bg-accent-primary/5" : "border-border-card bg-zinc-50/50 dark:bg-zinc-900/40"
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedResourceIds(prev => 
+                              isChecked ? prev.filter(id => id !== res.id) : [...prev, res.id]
+                            );
+                          }}
+                          className="accent-accent-primary rounded-xs cursor-pointer h-4 w-4"
+                        />
+                        <FileText className="h-5 w-5 text-accent-primary shrink-0" />
+                        <div>
+                          <p className="font-semibold text-zinc-800 dark:text-zinc-200">{res.title}</p>
+                          <span className="text-xs text-zinc-400 capitalize">{res.type} &bull; {res.format}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            res.status === "Approved" 
+                              ? "bg-emerald-500/10 text-emerald-600" 
+                              : res.status === "Pending"
+                              ? "bg-amber-500/10 text-amber-600"
+                              : "bg-red-500/10 text-red-600"
+                          }`}>
+                            {res.status}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 block mt-1">
+                            {new Date(res.uploadedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteResource(res.courseId, res.id, res.title)}
+                          className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-500 transition-colors cursor-pointer"
+                          title="Delete Resource"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        res.status === "Approved" 
-                          ? "bg-emerald-500/10 text-emerald-600" 
-                          : res.status === "Pending"
-                          ? "bg-amber-500/10 text-amber-600"
-                          : "bg-red-500/10 text-red-600"
-                      }`}>
-                        {res.status}
-                      </span>
-                      <span className="text-[10px] text-zinc-400 block mt-1">
-                        {new Date(res.uploadedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

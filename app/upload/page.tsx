@@ -368,6 +368,7 @@ export default function UploadPage({
         );
 
         setSubmitting(false);
+        addNotification("File is successfully submitted!", "success");
         router.push(`/courses`);
       }, 1000);
     };
