@@ -106,6 +106,9 @@ export default function UploadPage({
   }, [courses, selectedYear, selectedSemester, selectedBranchId]);
 
   useEffect(() => {
+    if (selectedSubjectId === "custom-subject") {
+      return; // Keep custom subject selection intact
+    }
     if (availableSubjects.length > 0) {
       const isValid = availableSubjects.some(s => s.id === selectedSubjectId);
       if (!isValid) {
