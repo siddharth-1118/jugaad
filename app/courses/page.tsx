@@ -1283,36 +1283,67 @@ export default function CoursesCatalogPage({
 
                   if (editFileObject) {
                     setEditIsUploading(true);
-                    const reader = new FileReader();
-                    reader.onloadend = async () => {
-                      const originalBase64 = reader.result as string;
+                    
+                    const uploadDirectToDrive = async () => {
                       try {
-                        const driveRes = await fetch("/api/upload-drive", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json"
-                          },
-                          body: JSON.stringify({
-                            fileName: editFileObject.name,
-                            fileData: originalBase64,
-                            mimeType: editFileObject.type
-                          })
-                        });
-                        if (driveRes.ok) {
-                          const driveData = await driveRes.json();
-                          if (!driveData.fallback && driveData.webViewLink) {
-                            await triggerUpdate(driveData.webViewLink, true);
-                            return;
-                          } else if (driveData.error) {
-                            addNotification(`Google Drive Upload Error: ${driveData.error}`, "warning");
+                        const tokenRes = await fetch("/api/upload-drive");
+                        if (!tokenRes.ok) throw new Error("Failed to contact credentials server");
+                        
+                        const tokenData = await tokenRes.json();
+                        if (tokenData.active && tokenData.accessToken) {
+                          addNotification("Uploading raw file to Google Drive...", "info");
+                          
+                          const metadata = {
+                            name: editFileObject.name,
+                            mimeType: editFileObject.type || "application/octet-stream"
+                          };
+                          
+                          const formData = new FormData();
+                          formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+                          formData.append("file", editFileObject);
+                          
+                          const driveRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink", {
+                            method: "POST",
+                            headers: {
+                              Authorization: `Bearer ${tokenData.accessToken}`
+                            },
+                            body: formData
+                          });
+                          
+                          if (!driveRes.ok) {
+                            const errBody = await driveRes.text();
+                            throw new Error(`Google upload failed: ${errBody}`);
                           }
+                          
+                          const driveData = await driveRes.json();
+                          const fileId = driveData.id;
+                          
+                          // Make file publicly readable
+                          await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+                            method: "POST",
+                            headers: {
+                              Authorization: `Bearer ${tokenData.accessToken}`,
+                              "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                              role: "reader",
+                              type: "anyone"
+                            })
+                          });
+                          
+                          await triggerUpdate(driveData.webViewLink, true);
+                          return true;
+                        } else if (tokenData.error) {
+                          addNotification(`Google Drive credentials error: ${tokenData.error}`, "warning");
                         }
                       } catch (driveErr: any) {
-                        console.error("Google Drive upload failed, trying database storage:", driveErr);
-                        addNotification(`Google Drive Upload Failed: ${driveErr.message || driveErr}`, "warning");
+                        console.error("Direct Google Drive upload failed, falling back to database storage:", driveErr);
+                        addNotification(`Google Drive Upload Failed: ${driveErr.message || driveErr}. Using database backup.`, "warning");
                       }
+                      return false;
+                    };
 
-                      // Fallback: compress file on the fly if needed for Supabase limit
+                    const handleFallback = async () => {
                       let targetFile = editFileObject;
                       const maxLimit = 8 * 1024 * 1024;
                       if (targetFile.size > maxLimit) {
@@ -1327,7 +1358,12 @@ export default function CoursesCatalogPage({
                       };
                       compressReader.readAsDataURL(targetFile);
                     };
-                    reader.readAsDataURL(editFileObject);
+
+                    uploadDirectToDrive().then((success) => {
+                      if (!success) {
+                        handleFallback();
+                      }
+                    });
                   } else {
                     triggerUpdate();
                   }

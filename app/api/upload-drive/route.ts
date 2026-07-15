@@ -2,6 +2,37 @@ import { NextResponse } from "next/server";
 import { Readable } from "stream";
 import { google } from "googleapis";
 
+export async function GET() {
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+    if (!clientId || !clientSecret || !refreshToken) {
+      return NextResponse.json({ active: false });
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+      clientId,
+      clientSecret,
+      "https://developers.google.com/oauthplayground"
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: refreshToken,
+    });
+
+    const tokenResponse = await oauth2Client.getAccessToken();
+    return NextResponse.json({
+      active: true,
+      accessToken: tokenResponse.token
+    });
+  } catch (err: any) {
+    console.error("Token exchange failed:", err.message);
+    return NextResponse.json({ active: false, error: err.message });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { fileName, fileData, mimeType } = await request.json();

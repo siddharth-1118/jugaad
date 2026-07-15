@@ -559,36 +559,67 @@ export default function UploadPage({
 
     if (fileObject) {
       setSubmitting(true);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const originalBase64 = reader.result as string;
+      
+      const uploadDirectToDrive = async () => {
         try {
-          const driveRes = await fetch("/api/upload-drive", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              fileName: fileObject.name,
-              fileData: originalBase64,
-              mimeType: fileObject.type
-            })
-          });
-          if (driveRes.ok) {
-            const driveData = await driveRes.json();
-            if (!driveData.fallback && driveData.webViewLink) {
-              await triggerUpload(driveData.webViewLink, true);
-              return;
-            } else if (driveData.error) {
-              addNotification(`Google Drive Upload Error: ${driveData.error}`, "warning");
+          const tokenRes = await fetch("/api/upload-drive");
+          if (!tokenRes.ok) throw new Error("Failed to contact credentials server");
+          
+          const tokenData = await tokenRes.json();
+          if (tokenData.active && tokenData.accessToken) {
+            addNotification("Uploading raw file to Google Drive...", "info");
+            
+            const metadata = {
+              name: fileObject.name,
+              mimeType: fileObject.type || "application/octet-stream"
+            };
+            
+            const formData = new FormData();
+            formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+            formData.append("file", fileObject);
+            
+            const driveRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${tokenData.accessToken}`
+              },
+              body: formData
+            });
+            
+            if (!driveRes.ok) {
+              const errBody = await driveRes.text();
+              throw new Error(`Google upload failed: ${errBody}`);
             }
+            
+            const driveData = await driveRes.json();
+            const fileId = driveData.id;
+            
+            // Make file publicly readable
+            await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${tokenData.accessToken}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                role: "reader",
+                type: "anyone"
+              })
+            });
+            
+            await triggerUpload(driveData.webViewLink, true);
+            return true;
+          } else if (tokenData.error) {
+            addNotification(`Google Drive credentials error: ${tokenData.error}`, "warning");
           }
         } catch (driveErr: any) {
-          console.error("Google Drive API upload failed, attempting database storage:", driveErr);
-          addNotification(`Google Drive Upload Failed: ${driveErr.message || driveErr}`, "warning");
+          console.error("Direct Google Drive upload failed, falling back to database storage:", driveErr);
+          addNotification(`Google Drive Upload Failed: ${driveErr.message || driveErr}. Using database backup.`, "warning");
         }
+        return false;
+      };
 
-        // Fallback: compress file on the fly if needed for Supabase limit
+      const handleFallback = async () => {
         let targetFile = fileObject;
         const maxLimit = 8 * 1024 * 1024;
         if (targetFile.size > maxLimit) {
@@ -603,7 +634,12 @@ export default function UploadPage({
         };
         compressReader.readAsDataURL(targetFile);
       };
-      reader.readAsDataURL(fileObject);
+
+      uploadDirectToDrive().then((success) => {
+        if (!success) {
+          handleFallback();
+        }
+      });
     } else {
       triggerUpload(`/mock-files/${fileName}`, false);
     }
