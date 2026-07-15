@@ -234,27 +234,50 @@ export default function UploadPage({
     }
 
     const triggerUpload = (fileUrl: string) => {
-      // Collect all branches: primary + any extra ones
-      const allBranchIds = [selectedBranchId, ...extraBranchIds.filter(b => b !== selectedBranchId)];
+      // Determine primary and all branches to target
+      const primaryBranchId = isNewCourse
+        ? (BRANCH_FILES.find(b => b.name === newCourseCategory)?.id || BRANCH_FILES[0]?.id)
+        : selectedBranchId;
+      const allBranchIds = [primaryBranchId, ...extraBranchIds.filter(b => b !== primaryBranchId)];
 
       setTimeout(async () => {
         for (const branchId of allBranchIds) {
           const branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
-          // Find same subject code in that branch's syllabus
-          const branchSubjects = getSubjectsForBranch(branchId, selectedSemester);
-          const matchedSubject = branchSubjects.find(
-            (s: any) => s.id === selectedSubjectId || s.code === availableSubjects.find(a => a.id === selectedSubjectId)?.code
-          );
-          const branchCourseId = branchId === selectedBranchId ? finalCourseId : (matchedSubject?.id || `${branchId}-${selectedSemester}-${selectedSubjectId}`);
-          const branchCourseDetails = branchId === selectedBranchId
-            ? newCourseDetails
-            : {
-                code: matchedSubject?.code || finalCourseId.toUpperCase(),
-                title: matchedSubject?.title || title,
-                year: selectedYear,
-                semester: selectedSemester,
-                category: branchName
-              };
+          
+          let branchCourseId: string;
+          let branchCourseDetails: any;
+
+          if (isNewCourse) {
+            // New folder registry across branches
+            branchCourseId = branchId === primaryBranchId
+              ? finalCourseId
+              : `${finalCourseId}-${branchId}`;
+
+            branchCourseDetails = {
+              code: newCourseCode.trim().toUpperCase(),
+              title: newCourseTitle.trim(),
+              year: newCourseYear,
+              semester: newCourseSem,
+              category: branchName
+            };
+          } else {
+            // Existing course registry
+            const branchSubjects = getSubjectsForBranch(branchId, selectedSemester);
+            const matchedSubject = branchSubjects.find(
+              (s: any) => s.id === selectedSubjectId || s.code === availableSubjects.find(a => a.id === selectedSubjectId)?.code
+            );
+            branchCourseId = branchId === selectedBranchId ? finalCourseId : (matchedSubject?.id || `${branchId}-${selectedSemester}-${selectedSubjectId}`);
+            branchCourseDetails = branchId === selectedBranchId
+              ? newCourseDetails
+              : {
+                  code: matchedSubject?.code || finalCourseId.toUpperCase(),
+                  title: matchedSubject?.title || title,
+                  year: selectedYear,
+                  semester: selectedSemester,
+                  category: branchName
+                };
+          }
+
           await addResource(branchCourseId, {
             title,
             type: finalType as any,
@@ -383,7 +406,7 @@ export default function UploadPage({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsNewCourse(false)}
+                    onClick={() => { setIsNewCourse(false); setExtraBranchIds([]); }}
                     className={`py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                       !isNewCourse
                         ? "bg-primary/10 border-primary text-primary shadow-[inset_0_0_12px_rgba(99,102,241,0.1)]"
@@ -394,7 +417,7 @@ export default function UploadPage({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsNewCourse(true)}
+                    onClick={() => { setIsNewCourse(true); setExtraBranchIds([]); }}
                     className={`py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                       isNewCourse
                         ? "bg-primary/10 border-primary text-primary shadow-[inset_0_0_12px_rgba(99,102,241,0.1)]"
@@ -480,7 +503,7 @@ export default function UploadPage({
                   <select
                     id="newCourseCategory"
                     value={newCourseCategory}
-                    onChange={(e) => setNewCourseCategory(e.target.value)}
+                    onChange={(e) => { setNewCourseCategory(e.target.value); setExtraBranchIds([]); }}
                     className="block w-full rounded-lg border-none bg-[#05070a] p-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden cursor-pointer"
                   >
                     {BRANCH_FILES.map((branch) => (
@@ -489,6 +512,43 @@ export default function UploadPage({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Multi-branch selector for New Folder */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                    Also Visible In (Multi-branch)
+                  </label>
+                  <div className="bg-[#05070a] rounded-lg p-2 space-y-1 max-h-36 overflow-y-auto border border-white/5">
+                    {BRANCH_FILES.filter(b => b.name !== newCourseCategory).map((branch) => {
+                      const checked = extraBranchIds.includes(branch.id);
+                      return (
+                        <label
+                          key={branch.id}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                            checked ? "bg-indigo-500/10 text-indigo-300" : "hover:bg-white/5 text-zinc-400"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              setExtraBranchIds(prev =>
+                                checked ? prev.filter(id => id !== branch.id) : [...prev, branch.id]
+                              );
+                            }}
+                            className="accent-indigo-500 w-3 h-3"
+                          />
+                          <span className="text-[11px] font-medium">{branch.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {extraBranchIds.length > 0 && (
+                    <p className="text-[10px] text-indigo-400 font-semibold">
+                      ✓ Will be created and uploaded to {extraBranchIds.length + 1} branches
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
