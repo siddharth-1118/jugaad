@@ -1034,25 +1034,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Also remove from Supabase
     try {
-      let { data: matchedItems } = await supabase
-        .from("items")
-        .select("id")
-        .like("photo_url", `%"id":"${resourceId}"%`)
-        .like("photo_url", `%"courseId":"${courseId}"%`);
-
-      if (!matchedItems || matchedItems.length === 0) {
-        // Fallback for older items that might not have courseId stored in photo_url JSON
-        const { data: fallbackItems } = await supabase
-          .from("items")
-          .select("id")
-          .like("photo_url", `%"id":"${resourceId}"%`);
-        matchedItems = fallbackItems;
-      }
-
-      if (matchedItems && matchedItems.length > 0) {
-        for (const item of matchedItems) {
-          await supabase.from("items").delete().eq("id", item.id);
-        }
+      const response = await fetch("/api/delete-resource", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ courseId, resourceId })
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error("Failed to delete from DB via API:", errData.error);
       }
     } catch (e: any) {
       console.error("Supabase delete error:", e.message);
