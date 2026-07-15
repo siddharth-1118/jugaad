@@ -152,6 +152,11 @@ interface AppContextType {
     resource: Omit<Resource, "id" | "status" | "downloadsCount" | "ratings" | "versions">,
     newCourseDetailsMap: Record<string, any>
   ) => Promise<void>;
+  updateResource: (
+    courseId: string,
+    resourceId: string,
+    updatedFields: Partial<Resource>
+  ) => Promise<void>;
   approveResource: (courseId: string, resourceId: string, feedback: string) => void;
   rejectResource: (courseId: string, resourceId: string, feedback: string) => void;
   deleteResource: (courseId: string, resourceId: string) => Promise<void>;
@@ -1052,6 +1057,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addNotification(`Material '${deletedTitle}' has been deleted.`, "success");
   };
 
+  const updateResource = async (
+    courseId: string,
+    resourceId: string,
+    updatedFields: Partial<Resource>
+  ) => {
+    let updatedTitle = "";
+    const newCourses = courses.map(course => {
+      if (course.id === courseId) {
+        return {
+          ...course,
+          resources: course.resources.map(res => {
+            if (res.id === resourceId) {
+              updatedTitle = updatedFields.title || res.title;
+              return {
+                ...res,
+                ...updatedFields
+              };
+            }
+            return res;
+          })
+        };
+      }
+      return course;
+    });
+
+    saveCourses(newCourses);
+
+    try {
+      const response = await fetch("/api/update-resource", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ courseId, resourceId, updatedFields })
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error("Failed to update DB via API:", errData.error);
+      }
+    } catch (e: any) {
+      console.error("Supabase update error:", e.message);
+    }
+
+    addNotification(`Material '${updatedTitle}' has been updated successfully.`, "success");
+  };
+
   const approveResource = async (courseId: string, resourceId: string, feedback: string) => {
     let approvedTitle = "";
     let targetRes: Resource | null = null;
@@ -1381,6 +1432,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         approveResource,
         rejectResource,
         deleteResource,
+        updateResource,
         addReview,
         incrementDownloads,
         rollbackResource,

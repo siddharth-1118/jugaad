@@ -27,8 +27,14 @@ export default function CoursesCatalogPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { courses, canUpload, user, isAuthenticated, deleteResource, addNotification } = useApp();
+  const { courses, canUpload, user, isAuthenticated, deleteResource, updateResource, addNotification } = useApp();
   const resolvedSearchParams = use(searchParams);
+
+  // Edit Modal State
+  const [editingResource, setEditingResource] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editType, setEditType] = useState("");
+  const [editFormat, setEditFormat] = useState("");
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"catalog" | "my-uploads">("catalog");
@@ -733,6 +739,19 @@ export default function CoursesCatalogPage({
                     )}
                     <button
                       type="button"
+                      onClick={() => {
+                        setEditingResource(res);
+                        setEditTitle(res.title);
+                        setEditType(res.type);
+                        setEditFormat(res.format);
+                      }}
+                      className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-zinc-200 transition-all cursor-pointer flex items-center justify-center"
+                      title="Edit Material"
+                    >
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleDeleteResource(res.courseId, res.id, res.title)}
                       className="p-2 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-500 transition-all cursor-pointer flex items-center justify-center"
                       title="Delete Upload"
@@ -743,6 +762,103 @@ export default function CoursesCatalogPage({
                 </div>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingResource && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0c10] p-6 space-y-6 shadow-2xl animate-scale-up">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-400 text-lg">edit_note</span>
+                Edit Contributed Resource
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingResource(null)}
+                className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Title input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-zinc-400">Resource Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50"
+                  placeholder="e.g. CS101 Lecture Slides"
+                />
+              </div>
+
+              {/* Type Select */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-zinc-400">Resource Category</label>
+                <select
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                >
+                  {subjectCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Format Select */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-zinc-400">File Format</label>
+                <select
+                  value={editFormat}
+                  onChange={(e) => setEditFormat(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#05070a] border border-white/10 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                >
+                  <option value="pdf">PDF</option>
+                  <option value="docx">Docx</option>
+                  <option value="doc">Doc</option>
+                  <option value="ppt">PPT</option>
+                  <option value="pptx">PPTX</option>
+                  <option value="txt">TXT</option>
+                  <option value="png">PNG</option>
+                  <option value="jpg">JPG</option>
+                  <option value="jpeg">JPEG</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-white/5 pt-4">
+              <button
+                type="button"
+                onClick={() => setEditingResource(null)}
+                className="px-4 py-2 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold text-zinc-300 hover:text-white cursor-pointer transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!editTitle.trim()) {
+                    alert("Please specify a valid resource title.");
+                    return;
+                  }
+                  await updateResource(editingResource.courseId, editingResource.id, {
+                    title: editTitle.trim(),
+                    type: editType as any,
+                    format: editFormat as any
+                  });
+                  setEditingResource(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md cursor-pointer transition-all"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       )}
