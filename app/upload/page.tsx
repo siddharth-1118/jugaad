@@ -72,6 +72,8 @@ export default function UploadPage({
   const [newCourseSem, setNewCourseSem] = useState<number>(urlSem);
   const [newCourseCategory, setNewCourseCategory] = useState(BRANCH_FILES[0]?.name || "Artificial Intelligence");
   const [customBranchText, setCustomBranchText] = useState("");
+  const [customSubjectCode, setCustomSubjectCode] = useState("");
+  const [customSubjectTitle, setCustomSubjectTitle] = useState("");
 
   // Dynamically calculate subjects for the selected Branch and Semester
   const availableSubjects = React.useMemo(() => {
@@ -194,7 +196,9 @@ export default function UploadPage({
 
     const finalCourseId = isNewCourse 
       ? newCourseCode.trim().toLowerCase().replace(/\s+/g, "-")
-      : selectedSubjectId;
+      : (selectedSubjectId === "custom-subject"
+          ? customSubjectCode.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")
+          : selectedSubjectId);
 
     const finalType = type === "custom" ? customCategoryText.trim().toLowerCase() : type;
 
@@ -219,17 +223,31 @@ export default function UploadPage({
         category: (newCourseCategory === "custom-branch" ? customBranchText.trim() : newCourseCategory.trim()) || "Computer Science"
       };
     } else {
-      const courseExists = courses.some(c => c.id === selectedSubjectId);
-      if (!courseExists) {
-        const matchedSubject = availableSubjects.find(s => s.id === selectedSubjectId);
-        if (matchedSubject) {
-          newCourseDetails = {
-            code: matchedSubject.code,
-            title: matchedSubject.title,
-            year: selectedYear,
-            semester: selectedSemester,
-            category: BRANCH_FILES.find(b => b.id === selectedBranchId)?.name || ""
-          };
+      const finalBranchName = selectedBranchId === "custom-branch"
+        ? customBranchText.trim()
+        : (BRANCH_FILES.find(b => b.id === selectedBranchId)?.name || "");
+
+      if (selectedSubjectId === "custom-subject") {
+        newCourseDetails = {
+          code: customSubjectCode.trim().toUpperCase(),
+          title: customSubjectTitle.trim(),
+          year: selectedYear,
+          semester: selectedSemester,
+          category: finalBranchName || "Computer Science"
+        };
+      } else {
+        const courseExists = courses.some(c => c.id === selectedSubjectId);
+        if (!courseExists) {
+          const matchedSubject = availableSubjects.find(s => s.id === selectedSubjectId);
+          if (matchedSubject) {
+            newCourseDetails = {
+              code: matchedSubject.code,
+              title: matchedSubject.title,
+              year: selectedYear,
+              semester: selectedSemester,
+              category: finalBranchName
+            };
+          }
         }
       }
     }
@@ -240,16 +258,26 @@ export default function UploadPage({
         ? (newCourseCategory === "custom-branch"
             ? customBranchText.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")
             : (BRANCH_FILES.find(b => b.name === newCourseCategory)?.id || BRANCH_FILES[0]?.id))
-        : selectedBranchId;
+        : (selectedBranchId === "custom-branch"
+            ? customBranchText.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")
+            : selectedBranchId);
       const allBranchIds = [primaryBranchId, ...extraBranchIds.filter(b => b !== primaryBranchId)];
 
       setTimeout(async () => {
         for (const branchId of allBranchIds) {
           let branchName = "";
-          if (isNewCourse && branchId === primaryBranchId && newCourseCategory === "custom-branch") {
-            branchName = customBranchText.trim();
+          if (isNewCourse) {
+            if (branchId === primaryBranchId && newCourseCategory === "custom-branch") {
+              branchName = customBranchText.trim();
+            } else {
+              branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
+            }
           } else {
-            branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
+            if (branchId === primaryBranchId && selectedBranchId === "custom-branch") {
+              branchName = customBranchText.trim();
+            } else {
+              branchName = BRANCH_FILES.find(b => b.id === branchId)?.name || "";
+            }
           }
           
           let branchCourseId: string;
@@ -270,20 +298,34 @@ export default function UploadPage({
             };
           } else {
             // Existing course registry
-            const branchSubjects = getSubjectsForBranch(branchId, selectedSemester);
-            const matchedSubject = branchSubjects.find(
-              (s: any) => s.id === selectedSubjectId || s.code === availableSubjects.find(a => a.id === selectedSubjectId)?.code
-            );
-            branchCourseId = branchId === selectedBranchId ? finalCourseId : (matchedSubject?.id || `${branchId}-${selectedSemester}-${selectedSubjectId}`);
-            branchCourseDetails = branchId === selectedBranchId
-              ? newCourseDetails
-              : {
-                  code: matchedSubject?.code || finalCourseId.toUpperCase(),
-                  title: matchedSubject?.title || title,
-                  year: selectedYear,
-                  semester: selectedSemester,
-                  category: branchName
-                };
+            if (selectedSubjectId === "custom-subject") {
+              branchCourseId = branchId === primaryBranchId
+                ? finalCourseId
+                : `${finalCourseId}-${branchId}`;
+
+              branchCourseDetails = {
+                code: customSubjectCode.trim().toUpperCase(),
+                title: customSubjectTitle.trim(),
+                year: selectedYear,
+                semester: selectedSemester,
+                category: branchName
+              };
+            } else {
+              const branchSubjects = getSubjectsForBranch(branchId, selectedSemester);
+              const matchedSubject = branchSubjects.find(
+                (s: any) => s.id === selectedSubjectId || s.code === availableSubjects.find(a => a.id === selectedSubjectId)?.code
+              );
+              branchCourseId = branchId === selectedBranchId ? finalCourseId : (matchedSubject?.id || `${branchId}-${selectedSemester}-${selectedSubjectId}`);
+              branchCourseDetails = branchId === selectedBranchId
+                ? newCourseDetails
+                : {
+                    code: matchedSubject?.code || finalCourseId.toUpperCase(),
+                    title: matchedSubject?.title || title,
+                    year: selectedYear,
+                    semester: selectedSemester,
+                    category: branchName
+                  };
+            }
           }
 
           await addResource(branchCourseId, {
@@ -621,7 +663,7 @@ export default function UploadPage({
                   <select
                     id="selectBranch"
                     value={selectedBranchId}
-                    onChange={(e) => { setSelectedBranchId(e.target.value); setExtraBranchIds([]); }}
+                    onChange={(e) => { setSelectedBranchId(e.target.value); setExtraBranchIds([]); setCustomBranchText(""); }}
                     className="block w-full rounded-lg border-none bg-[#05070a] p-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden cursor-pointer"
                   >
                     {BRANCH_FILES.map((branch) => (
@@ -629,8 +671,26 @@ export default function UploadPage({
                         {branch.name}
                       </option>
                     ))}
+                    <option value="custom-branch">-- Custom Specialization / Branch --</option>
                   </select>
                 </div>
+
+                {selectedBranchId === "custom-branch" && (
+                  <div className="space-y-1.5 animate-fade-in">
+                    <label htmlFor="customBranchTextExisting" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                      Custom Branch / Specialization Name
+                    </label>
+                    <input
+                      id="customBranchTextExisting"
+                      type="text"
+                      required={selectedBranchId === "custom-branch"}
+                      value={customBranchText}
+                      onChange={(e) => setCustomBranchText(e.target.value)}
+                      placeholder="e.g. Robotics & Automation"
+                      className="block w-full rounded-lg border-none bg-surface-container-low px-3.5 py-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden"
+                    />
+                  </div>
+                )}
 
                 {/* Multi-branch selector */}
                 <div className="space-y-1.5">
@@ -676,7 +736,7 @@ export default function UploadPage({
                   <select
                     id="selectSubject"
                     value={selectedSubjectId}
-                    onChange={(e) => setSelectedSubjectId(e.target.value)}
+                    onChange={(e) => { setSelectedSubjectId(e.target.value); setCustomSubjectCode(""); setCustomSubjectTitle(""); }}
                     className="block w-full rounded-lg border-none bg-[#05070a] p-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden cursor-pointer"
                   >
                     {availableSubjects.map((s) => (
@@ -684,11 +744,45 @@ export default function UploadPage({
                         {s.code} - {s.title}
                       </option>
                     ))}
+                    <option value="custom-subject">-- Custom Course Subject --</option>
                     {availableSubjects.length === 0 && (
                       <option value="">No subjects available</option>
                     )}
                   </select>
                 </div>
+
+                {selectedSubjectId === "custom-subject" && (
+                  <div className="space-y-3 p-3 bg-white/5 rounded-xl border border-white/5 animate-fade-in">
+                    <div className="space-y-1.5">
+                      <label htmlFor="customSubjectCode" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                        Custom Course Code
+                      </label>
+                      <input
+                        id="customSubjectCode"
+                        type="text"
+                        required={selectedSubjectId === "custom-subject"}
+                        value={customSubjectCode}
+                        onChange={(e) => setCustomSubjectCode(e.target.value)}
+                        placeholder="e.g. CS402"
+                        className="block w-full rounded-lg border-none bg-surface-container-low px-3.5 py-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label htmlFor="customSubjectTitle" className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                        Custom Course Title
+                      </label>
+                      <input
+                        id="customSubjectTitle"
+                        type="text"
+                        required={selectedSubjectId === "custom-subject"}
+                        value={customSubjectTitle}
+                        onChange={(e) => setCustomSubjectTitle(e.target.value)}
+                        placeholder="e.g. Distributed Computing"
+                        className="block w-full rounded-lg border-none bg-surface-container-low px-3.5 py-2.5 text-xs text-on-surface focus:ring-2 focus:ring-primary/50 focus:outline-hidden"
+                      />
+                    </div>
+                  </div>
+                )}
 
               </div>
             )}
